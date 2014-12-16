@@ -1,8 +1,13 @@
 #!/usr/bin/perl -w
 use strict;
 use Getopt::Long;
+use DBI;
 
-my $CARDIODB='CARDIODB_DEVEL';
+my $db='';
+my $dbhost='';
+my $dbport='';
+my $dbuser='';
+my $dbpass='';
 my $type='SQL'; #default
 my $DEBUG;  
 my $run_name='';
@@ -10,116 +15,72 @@ my ($pool_name,$sample_name);
 
 GetOptions
 (
-	'debug!' => \$DEBUG,
-    'run_name=s'	=>	\$run_name,
-    'pool_name:s'	=>	\$pool_name, #optional
-    'sample_name:s'	=>	\$sample_name, #optional
+  'debug!'		=>	\$DEBUG,
+  'run_name=s'		=>	\$run_name,
+  'db=s'		=>	\$db,
+  'dbhost=s'		=>	\$dbhost,
+  'dbport=s'		=>	\$dbport,
+  'dbuser=s'		=>	\$dbuser,
+  'dbpass=s'		=>	\$dbpass,
+  'pool_name:s'		=>	\$pool_name, #optional
+  'sample_name:s'	=>	\$sample_name, #optional
 ) or &usage();
 
 warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $run_name;
 
-my $result_root;
+#my $solid_root="/data/results/s0464.pssc";
+##my $fff_root="/data/results/454";
+##my $hiseq_root='/data/results/HiSeq';
+my $miseq_root='/data1/seq_data/NHCS/MiSeq/results';
+##my $xl_root='/data/results/5500xl/projects/lifescope';
+#my $result_root;
 
 MAIN: {
+	my $dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+		or die "Couldn't connect to database: " . DBI->errstr;
 	my $sql;
+	my @sql_out;
 	if($run_name eq 'all'){
-		$sql=`mysql --skip-column-names -e "
-		SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,s.old_sample_name,s.barcode,r.platform FROM $CARDIODB.Samples s JOIN $CARDIODB.Runs r ON s.run_id=r.id"`;
+		$sql=$dbh->prepare("SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,r.machine FROM Samples s JOIN Runs r ON s.run_id=r.id")
+			or die "Couldn't prepare statement: " . $dbh->errstr;
+		$sql->execute()
+			or die "Couldn't execute statement: " . $sql->errstr;
 	}else{
 		my $aux=$pool_name? "and pool_name='$pool_name' ":'';
 		$aux=$sample_name? $aux."and sample_name='$sample_name'":$aux;
 
-		$sql=`mysql --skip-column-names -e "
-		SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,s.old_sample_name,s.barcode,r.platform FROM $CARDIODB.Samples s JOIN $CARDIODB.Runs r ON s.run_id=r.id where s.run_name='$run_name' $aux order by s.id"`;
+		$sql=$dbh->prepare("SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,r.machine FROM Samples s JOIN Runs r ON s.run_id=r.id where s.run_name= ? $aux order by s.id")
+			or die "Couldn't prepare statement: " . $dbh->errstr;
+		$sql->execute($run_name)
+			or die "Couldn't execute statement: " . $sql->errstr;
+		if ($sql->rows == 0) {
+			die "\e[31mNo entries in $db.Samples\e[0m\n";
+		}
 	}
-	die "No entries in $CARDIODB.Samples\n" unless defined $sql;
+#	die "No entries in $db.Samples\n" unless defined $sql;
 
-	my @samples=split(/\n/,$sql);
-	foreach (@samples){
-		my ($sample_id,$run_name,$pool_name,$sample_name,$target_id,$old_sample_name,$barcode,$platform)=split(/\t/,$_);
-
-=samples
-id  run_name    pool_name   sample_name target_id   diag_code   barcode bru_id  spot_assign setting multiplex_series    old_sample_name
-1   s0464_20101102_PE_BC    James_pool  14SO00001DN 252241  A   1   NULL    4   default primary BC Kit Module 1-16  LIBR1
-2   s0464_20101102_PE_BC    James_pool  14SO00012DN 252241  A   4   NULL    4   default primary BC Kit Module 1-16  LIBR12
-27  454jr_20101215_GST4CTX_01   JamesFluidigmPilot  14so00002DN AA_LQT_v1   A   1   NULL    NULL    NULL    NULL    NULL
-28  454jr_20101215_GST4CTX_01   JamesFluidigmPilot  14so00003DN AA_LQT_v1   A   2   NULL    NULL    NULL    NULL    NULL
-=cut
-		# Solid4 paired-end
-		#/data/results/s0464.pssc/s0464_20101102_PE_BC/James_pool/results/libraries/gatk_snp_indel/LIBR1/Target/LIBR1_F3-F5-BC-Paired.ontarget.bam.final.snp.vcf
-		#/data/results/s0464.pssc/s0464_20101102_PE_BC/James_pool/results/libraries/gatk_snp_indel/LIBR1/Target/LIBR1_F3-F5-BC-Paired.ontarget.bam.final.indel.vcf
+	while (@sql_out = $sql->fetchrow_array()){
+		my ($sample_id,$run_name,$pool_name,$sample_name,$target_id,$machine)=@sql_out;
 		my ($gatk_snp, $gatk_indel);
-		if($platform eq 'SOLiD4'){
-			$result_root='/data/results/s0464.pssc';
-			# Sample names should be BRU number compatible
-			$gatk_snp="$result_root/$run_name/".$pool_name."/results/libraries/gatk_snp_indel/".$sample_name."/Target/".$sample_name."_F3-F5-BC-Paired.ontarget.bam.final.snp.vcf";
-			$gatk_indel="$result_root/$run_name/".$pool_name."/results/libraries/gatk_snp_indel/".$sample_name."/Target/".$sample_name."_F3-F5-BC-Paired.ontarget.bam.final.indel.vcf";
-
-			# Old sample names (non BRU numbers)
-			$gatk_snp="$result_root/$run_name/".$pool_name."/results/libraries/gatk_snp_indel/".$old_sample_name."/Target/".$old_sample_name."_F3-F5-BC-Paired.ontarget.bam.final.snp.vcf" unless -s $gatk_snp;
-			$gatk_indel="$result_root/$run_name/".$pool_name."/results/libraries/gatk_snp_indel/".$old_sample_name."/Target/".$old_sample_name."_F3-F5-BC-Paired.ontarget.bam.final.indel.vcf" unless -s $gatk_indel;
-
-		# 454 run 
-		# /data/results/454/454jr_20101215_GST4CTX_01/output/14so00032DN/Target/14so00032DN.final.snp.vcf
-		# /data/results/454/454jr_20101215_GST4CTX_01/output/14so00032DN/Target/14so00032DN.final.indel.vcf
-		}elsif($platform eq '454'){
-			$result_root='/data/results/454';
-			$gatk_snp="$result_root/$run_name/output/".$sample_name."/Target/".$sample_name.".final.snp.vcf";
-			$gatk_indel="$result_root/$run_name/output/".$sample_name."/Target/".$sample_name.".final.indel.vcf";
-		# 5500XL
-		# /data/results/5500xl/projects/lifescope/CMR000070_20110711_HCM_Pool_2_AND_4/HCM_pool_2_283241/gatk_snp_indel/10DP00127VB/Target/HCM_pool_2_283241.ontarget.bam.final.snp.vcf
-		}elsif($platform eq '5500xl'){
-			$result_root='/data/results/5500xl/projects/lifescope';
-			# /data/results/5500xl/projects/lifescope/CMR000070_20110711_HCM_Pool_2_AND_4/HCM_pool_2_283241
-			if(-d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id){
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$sample_name.'/Target/'.$pool_name.'_'.$target_id.'.ontarget.bam.final.snp.vcf';
-				#/data/results/5500xl/projects/lifescope/CMR000070_20111210_SOLiD4_Merge/Exome_S02972011/gatk_snp_indel/20so00049DN/Target/Exome_S02972011_1.ontarget.bam.final.snp.vcf
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$sample_name.'/Target/'.$pool_name.'_'.$target_id.'_1.ontarget.bam.final.snp.vcf' unless -s $gatk_snp;
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$old_sample_name.'/Target/'.$pool_name.'_'.$target_id.'.ontarget.bam.final.snp.vcf' unless -s $gatk_snp;
-
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$sample_name.'/Target/'.$pool_name.'_'.$target_id.'.ontarget.bam.final.indel.vcf';
-				#/data/results/5500xl/projects/lifescope/CMR000070_20111210_SOLiD4_Merge/Exome_S02972011/gatk_snp_indel/20so00049DN/Target/Exome_S02972011_1.ontarget.bam.final.indel.vcf
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$sample_name.'/Target/'.$pool_name.'_'.$target_id.'_1.ontarget.bam.final.indel.vcf' unless -s $gatk_indel;
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$old_sample_name.'/Target/'.$pool_name.'_'.$target_id.'.ontarget.bam.final.indel.vcf' unless -s $gatk_indel;
-
-				# /data/results/5500xl/projects/lifescope/CMR000070_20131017_IHD2/IHD2_S0411142/gatk_snp_indel/12JR00759/Target/UnifiedGenotyper/IHD2_S0411142.ontarget.bam.final.UnifiedGenotyper.snp.vcf
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$sample_name.'/Target/UnifiedGenotyper/'.$pool_name.'_'.$target_id.'.ontarget.bam.final.UnifiedGenotyper.snp.vcf' unless -s $gatk_snp;
-
-				# /data/results/5500xl/projects/lifescope/CMR000070_20131017_IHD2/IHD2_S0411142/gatk_snp_indel/12JR00759/Target/UnifiedGenotyper/IHD2_S0411142.ontarget.bam.final.UnifiedGenotyper.indel.vcf
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id.'/gatk_snp_indel/'.$sample_name.'/Target/UnifiedGenotyper/'.$pool_name.'_'.$target_id.'.ontarget.bam.final.UnifiedGenotyper.indel.vcf' unless -s $gatk_indel;
-
-			# /data/results/5500xl/projects/lifescope/CMR000070_20110711_HCM6ANDExomeRerun2_3/RJB_ExomeRerun_Pool_2
-			}elsif(-d $result_root.'/'.$run_name.'/'.$pool_name){
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'/gatk_snp_indel/'.$sample_name.'/Target/'.$pool_name.'.ontarget.bam.final.snp.vcf';
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'/gatk_snp_indel/'.$old_sample_name.'/Target/'.$pool_name.'.ontarget.bam.final.snp.vcf' unless -s $gatk_snp;
-				$gatk_snp=$result_root.'/'.$run_name.'/'.$pool_name.'/gatk_snp_indel/'.$sample_name.'/Target/Exome_'.$target_id.'.ontarget.bam.final.snp.vcf' unless -s $gatk_snp;
-
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'/gatk_snp_indel/'.$sample_name.'/Target/'.$pool_name.'.ontarget.bam.final.indel.vcf';
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'/gatk_snp_indel/'.$old_sample_name.'/Target/'.$pool_name.'.ontarget.bam.final.indel.vcf' unless -s $gatk_indel;
-				$gatk_indel=$result_root.'/'.$run_name.'/'.$pool_name.'/gatk_snp_indel/'.$sample_name.'/Target/Exome_'.$target_id.'.ontarget.bam.final.indel.vcf' unless -s $gatk_indel;
-			}else{
-				die "\e[031mNo subdir having the pool name($pool_name) under $result_root/$run_name\e[0m\n";
-			}
-		}elsif($platform eq 'HiSeq'){
-			$result_root='/data/results/HiSeq';
-			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
-			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
+		if($machine eq 'HiSeq'){
+#			$result_root='/data/results/HiSeq';
+#			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
+#			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
 
 			#/data/results/HiSeq/120803_SN674_0189_BD12RKACXX_JamesWare/Lane2/BWA_gatk_snp_indel_AdapterTrimmed/20aa00254/Bait/20aa00254_GTGAGAGACA.Realigned.recalibrated.OnBait.q8.bam.final.snp.vcf
-			$gatk_snp="$pool_dir/gatk_snp_indel_AdapterTrimmed/$sample_name/Bait/$sample_name.Realigned.recalibrated.OnBait.q8.bam.final.snp.vcf";
+#			$gatk_snp="$pool_dir/gatk_snp_indel_AdapterTrimmed/$sample_name/Bait/$sample_name.Realigned.recalibrated.OnBait.q8.bam.final.snp.vcf";
 
 			#/data/results/HiSeq/130118_SN674_0199_AC13LGACXX/MYRN_SureSelect/BWA_gatk_snp_indel/20AA02416/Target/20AA02416_AGTCACTA.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf
-			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf" unless -s $gatk_snp;
+#			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf" unless -s $gatk_snp;
 
 			#/data/results/HiSeq/120803_SN674_0189_BD12RKACXX_JamesWare/Lane2/BWA_gatk_snp_indel_AdapterTrimmed/20aa00254/Bait/20aa00254_GTGAGAGACA.Realigned.recalibrated.OnBait.q8.bam.final.indel.vcf
-			$gatk_indel="$pool_dir/gatk_snp_indel_AdapterTrimmed/$sample_name/Bait/$sample_name.Realigned.recalibrated.OnBait.q8.bam.final.indel.vcf";
+#			$gatk_indel="$pool_dir/gatk_snp_indel_AdapterTrimmed/$sample_name/Bait/$sample_name.Realigned.recalibrated.OnBait.q8.bam.final.indel.vcf";
 
 			#/data/results/HiSeq/130118_SN674_0199_AC13LGACXX/MYRN_SureSelect/BWA_gatk_snp_indel/20AA02416/Target/20AA02416_AGTCACTA.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf
-			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf" unless -s $gatk_indel;
-		}elsif($platform eq 'MiSeq'){
-			$result_root='/data/results/MiSeq';
-			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
-			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
+#			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf" unless -s $gatk_indel;
+		}elsif($machine eq 'MiSeq'){
+			my $pool_dir=$miseq_root.'/'.$run_name.'/'.$pool_name;
+			$pool_dir=$miseq_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $miseq_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
 
 			#/data/results/MiSeq/130103_M01389_0002_000000000-A2V7A/Lane2/BWA_gatk_snp_indel/20AA02402/Target/20AA02402_AACGTG.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf
 			#/data/results/MiSeq/130531_M01389_0014_000000000-A3F2A/PRDM16_Fluidigm/BWA_gatk_snp_indel/14EG01498a/Target/14EG01498a.Realigned.recalibrated.OnTarget.q8.bam.snp.vcf
@@ -128,20 +89,20 @@ id  run_name    pool_name   sample_name target_id   diag_code   barcode bru_id  
 			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf" unless -s $gatk_snp;
 			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/UnifiedGenotyper/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.snp.vcf" unless -s $gatk_snp;
 			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/UnifiedGenotyper/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.snp.vcf" unless -s $gatk_snp;
+			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/UnifiedGenotyper/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.final.UnifiedGenotyper.snp.vcf" unless -s $gatk_snp;
 
 			# /data/results/MiSeq/131122_M01389_0027_000000000-A61C8/Nextera_177Gene/gatk_snp_indel/13G000020/Target/UnifiedGenotyper/13G000020.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.snp.vcf
-			$gatk_snp="$pool_dir/gatk_snp_indel/$old_sample_name/Target/UnifiedGenotyper/$old_sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.snp.vcf" unless -s $gatk_snp;
-
-
+#			$gatk_snp="$pool_dir/gatk_snp_indel/$old_sample_name/Target/UnifiedGenotyper/$old_sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.snp.vcf" unless -s $gatk_snp;
 			#/data/results/MiSeq/130103_M01389_0002_000000000-A2V7A/Lane2/BWA_gatk_snp_indel/20AA02402/Target/20AA02402_AACGTG.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf
 			#/data/results/MiSeq/131122_M01389_0027_000000000-A61C8/Nextera_177Gene/gatk_snp_indel/10CD02790/Target/UnifiedGenotyper/10CD02790.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf
 			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf";
 			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf" unless -s $gatk_indel;
 			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/UnifiedGenotyper/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf" unless -s $gatk_indel;
 			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/UnifiedGenotyper/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf" unless -s $gatk_indel;
+			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/UnifiedGenotyper/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.final.UnifiedGenotyper.indel.vcf" unless -s $gatk_indel;
 
 			# /data/results/MiSeq/131122_M01389_0027_000000000-A61C8/Nextera_177Gene/gatk_snp_indel/13G000020/Target/UnifiedGenotyper/13G000020.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf
-			$gatk_indel="$pool_dir/gatk_snp_indel/$old_sample_name/Target/UnifiedGenotyper/$old_sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf" unless -s $gatk_indel;
+#			$gatk_indel="$pool_dir/gatk_snp_indel/$old_sample_name/Target/UnifiedGenotyper/$old_sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf" unless -s $gatk_indel;
 
 		}else{
 			warn "\e[031mGATKs only for Soid4, 454, 5500XL, HiSeq or MiSeq\e[0m\n" and next;
@@ -153,6 +114,10 @@ id  run_name    pool_name   sample_name target_id   diag_code   barcode bru_id  
 		&parse_vcf($sample_id, $gatk_snp);
 		&parse_vcf($sample_id, $gatk_indel);
 	}#end of @samples
+	
+	$sql->finish();
+	$dbh->disconnect();
+#
 }#end of MAIN
 
 sub parse_vcf{
