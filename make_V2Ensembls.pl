@@ -1,48 +1,57 @@
 #!/usr/bin/perl -w
-=header1
-last modified
-10/Dec/2012
-Sung Gong <sung.gong@yahoo.com>
-=cut
-
 use strict;
 use Getopt::Long;
+use DBI;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use lib '/data/Develop/Perl/lib';
-use Sung::Manager::Config;
 
+#use lib '/data/Develop/Perl/lib';
+#use Sung::Manager::Config;
+
+my $db='';
+my $dbhost='';
+my $dbport='';
+my $dbuser='';
+my $dbpass='';
+my $CARDIODB_ROOT='';
 my $DEBUG=0; #
-my $CARDIODB='CARDIODB_DEVEL';
+#my $CARDIODB='CARDIODB_DEVEL';
 
 # Get DB config
-my $db_config='/data/Develop/Perl/lib/Sung/Manager/Config/db.conf';
-my $config=Sung::Manager::Config->get_config_from_file($db_config);
-my $host=$config->{db}{host};
-my $cardiodb=$config->{db}{cardiodb};
-my $nectar=$config->{db}{nectar};
-my $user=$config->{db}{user};
-my $passwd=$config->{db}{passwd};
-my $CARDIODB_ROOT=$config->{CARDIODB_ROOT};
-my $NECTAR_ROOT=$config->{NECTAR_ROOT};
+#my $db_config='/data/Develop/Perl/lib/Sung/Manager/Config/db.conf';
+#my $config=Sung::Manager::Config->get_config_from_file($db_config);
+#my $host=$config->{db}{host};
+#my $cardiodb=$config->{db}{cardiodb};
+#my $nectar=$config->{db}{nectar};
+#my $user=$config->{db}{user};
+#my $passwd=$config->{db}{passwd};
+#my $CARDIODB_ROOT=$config->{CARDIODB_ROOT};
+#my $NECTAR_ROOT=$config->{NECTAR_ROOT};
 
 my ($is_sql,$which_db,$all,$region,$start,$end,$allele,$check_alleles,$not_in_v2ensembl,$new_entries,$canon_only,$v2ensx,$annotation,$help);
+
 GetOptions
 (
-	'sql' => \$is_sql,
-	'db:s' => \$which_db,
-	'all:s' => \$all,  # a flag
-    'chr:s'	=>	\$region, #optional
-	'start=i'=> \$start,
-	'end=i'=> \$end,
-	'allele=s'=> \$allele,
-	'check_alleles' => \$check_alleles,
-	'not_in_v2ensembl' => \$not_in_v2ensembl,
-	'new_entries' => \$new_entries,
-	'canon_only' =>  \$canon_only,
-	'v2ensx' => \$v2ensx,
-	'annotation' => \$annotation,
-	'help!' => \$help,
+  'db=s'		=> \$db,
+  'dbhost=s'		=> \$dbhost,
+  'dbport=s'		=> \$dbport,
+  'dbuser=s'		=> \$dbuser,
+  'dbpass=s'		=> \$dbpass,
+  'CARDIODB_ROOT=s'	=> \$CARDIODB_ROOT,
+  'sql'			=> \$is_sql,
+#  'db:s'		=> \$which_db,
+  'all:s'		=> \$all,  # a flag
+  'chr:s'		=> \$region, #optional
+  'start=i'		=> \$start,
+  'end=i'		=> \$end,
+  'allele=s'		=> \$allele,
+  'check_alleles'	=> \$check_alleles,
+  'not_in_v2ensembl'	=> \$not_in_v2ensembl,
+  'new_entries'		=> \$new_entries,
+  'canon_only'		=> \$canon_only,
+  'v2ensx'		=> \$v2ensx,
+  'annotation'		=> \$annotation,
+  'help!'		=> \$help,
 );
 
 &help and exit(0) if $help;
@@ -53,7 +62,8 @@ if(defined $region){&help and exit(0) unless $region=~m/^(1|2|3|4|5|6|7|8|9|10|1
 ## local ensembl registry: ~/.ensembl_api.conf ##############
 #############################################################
 my $reg = "Bio::EnsEMBL::Registry";
-$reg->load_all(); # from ENSEMBL_RETISTRY (check $ENSEMBL_RERISTRY env)
+my $reg_config = "/other/CardioDBS/ensembl_api.conf";
+$reg->load_all($reg_config); # from ENSEMBL_RETISTRY (check $ENSEMBL_RERISTRY env)
 my $slice_adaptor=$reg->get_adaptor('human','core','slice');
 #my $slice_adaptor=$reg->get_adaptor("Slice"); #my $slice_adaptor=$reg->get_adaptor("Human", "core", "slice");
 #my $slice_adaptor=$reg->get_SliceAdaptor();
@@ -75,6 +85,10 @@ my $tla= $reg->get_adaptor('Human', 'core', 'translation');
 
 
 MAIN:{
+	my $dbh;
+	my $sql;
+	my @sql_out;
+
 	my @results;
 	# Using SQL to search against _UnifiedCalls table
 	if(defined $is_sql){
@@ -87,14 +101,17 @@ MAIN:{
 		$aux=$new_entries? 
 			$aux=~/where/? $aux.' and is_new=1': 'where is_new=1'
 			:$aux;
-		my $db=$which_db eq $cardiodb? $cardiodb : $which_db eq $nectar? $nectar : $which_db;
+#		my $db=$which_db eq $cardiodb? $cardiodb : $which_db eq $nectar? $nectar : $which_db;
 
-		my $query= "SELECT id, chr, v_start, v_end, reference, genotype from $db._UnifiedCalls $aux"; # from _UnifiedCallers
-		print $query,"\n";
+		$dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+                        or die "Couldn't connect to database: " . DBI->errstr;
 
-		my $sql=`mysql -h $host -u $user -p$passwd $CARDIODB --skip-column-name -e "$query"`;
-		die "No entries in _UnifiedCalls\n" unless defined $sql;
-		@results=split(/\n/,$sql);
+                $sql=$dbh->prepare("SELECT id, chr, v_start, v_end, reference, genotype from _UnifiedCalls $aux")
+                        or die "Couldn't prepare statement: " . $dbh->errstr;
+
+                $sql->execute()
+                        or die "Couldn't execute statement: " . $sql->errstr;
+
 
 		### Make File Handle ###
 		my ($v2ens,$v2dbsnp,$v2phen,$v2freq);
@@ -105,8 +122,8 @@ MAIN:{
 		$name=$name.'.canon_only' if defined $canon_only;
 		$name=$name.'.added' if $not_in_v2ensembl or $new_entries;
 
-		my $dump_root=$which_db eq $cardiodb? $CARDIODB_ROOT : $which_db eq $nectar? $NECTAR_ROOT : '' ;
-		
+#		my $dump_root=$which_db eq $cardiodb? $CARDIODB_ROOT : $which_db eq $nectar? $NECTAR_ROOT : '' ;
+		my $dump_root=$CARDIODB_ROOT;		
 		$v2ens=$dump_root.'/Dump/V2Ensembls/V2Ensembls.'.$name.'.txt';
 		open (ENS, "+>$v2ens") or die "cannot make $v2ens :$!\n";
 		if($annotation){
@@ -122,58 +139,75 @@ MAIN:{
 		}
 
 	# Use the user input
-	}else{
-		&help() and exit(0) unless $start and $end and $allele;
-		my($ref,$genotype)=split(/\//,$allele);
-		my $dummy_uid=0;
-		push @results, "$dummy_uid\t$region\t$start\t$end\t$ref\t$genotype";
-	}
 
 	# read Variations entries
-	foreach (@results){
+#		while (@sql_out = $sql->fetchrow_array()){
+		while ((@sql_out) = $sql->fetchrow_array()){
 		####################################
 		########## PRE PROCESS #############
 		####################################
 		#id, sample_id, chr, v_start, v_end, genotype, reference
-		my ($uid,$chr,$g_start,$g_end,$ref_dna,$mut_dna)=split(/\t/,$_);
-		print "chr:$chr\tstart:$g_start\tend:$g_end\tref:$ref_dna\tmut:$mut_dna\n" if $DEBUG;
-		$chr=~s/chr//;
+			my ($uid,$chr,$g_start,$g_end,$ref_dna,$mut_dna)=@sql_out;
+			print "$uid\tchr:$chr\tstart:$g_start\tend:$g_end\tref:$ref_dna\tmut:$mut_dna\n" if $DEBUG;
+			$chr=~s/chr//;
 		#warn "alternative allele($mut_dna) is not one of ATGC\nchr$chr\t$g_start\t$g_end\t$ref_dna\t$mut_dna\n" unless $mut_dna=~/[ATGC-]/;
 
-		my $allele_string="$ref_dna/$mut_dna";  # the first allele should be the reference allele
-		my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr); 
+			my $allele_string="$ref_dna/$mut_dna";  # the first allele should be the reference allele
+			my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr); 
 
 		# [QC] a slice should be defined by now. 
-		if($DEBUG){
-			my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr);
-			die "no slice chr:$chr\tg_start:$g_start\n" unless defined $slice;
-			print "\e[33mOn Slice:\e[0m ",$slice->name, "\tChr:", $slice->seq_region_name, "\tStrand: ", $slice->strand,"\t[WT]:$ref_dna\t[MUT]:$mut_dna\n";
-		}
-		warn "no slice chr:$chr\tg_start:$g_start\n" and next unless defined $slice;
+			if($DEBUG){
+				my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr);
+				die "no slice chr:$chr\tg_start:$g_start\n" unless defined $slice;
+				print "\e[33mOn Slice:\e[0m ",$slice->name, "\tChr:", $slice->seq_region_name, "\tStrand: ", $slice->strand,"\t[WT]:$ref_dna\t[MUT]:$mut_dna\n";
+			}
+			warn "no slice chr:$chr\tg_start:$g_start\n" and next unless defined $slice;
 
 		# a new VariationFeature object
 		# http://www.ensembl.org/info/docs/api/variation/variation_tutorial.html
 		# create a new VariationFeature object, which is the position of a Variation object on the Genome
-		my $new_vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-			-start => $g_start,
-			-end => $g_end,
-			-slice => $slice,           # the variation must be attached to a slice
-			-allele_string => "$allele_string",    # the first allele should be the reference allele
-			-strand => $slice->strand, # 1 by default
-			-map_weight => 1,
-			-adaptor => $vfa,           # we must attach a variation feature adaptor (defined globally)
+			my $new_vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+				-start => $g_start,
+				-end => $g_end,
+				-slice => $slice,           # the variation must be attached to a slice
+				-allele_string => "$allele_string",    # the first allele should be the reference allele
+				-strand => $slice->strand, # 1 by default
+				-map_weight => 1,
+				-adaptor => $vfa,           # we must attach a variation feature adaptor (defined globally)
 			#-variation_name=> 
-		);
+			);
+
+			if($DEBUG){
+				print "\e[33mOn Slice 2:\e[0m ",$new_vf->slice->get_seq_region_id,"\t", $new_vf->start,"\t", $new_vf->end,"\n";
+			}
+
+			die "cannot get VariationFeature adaptor\n" unless defined $new_vf;
 
 		################################################
 		########## Ensembl API runs (ENSX) #############
 		################################################
 		## NO GENE SLICE (possible UPSTREAM, REGULATORY or INTERGENIC) 
-		&v2ensx($uid,$new_vf,$chr,$g_start,$g_end,$ref_dna,$mut_dna) if $v2ensx;
-		&v2dbsnp($uid,$new_vf) if $annotation;
-	}#end of foreach $sql result 
+			&v2ensx($uid,$new_vf,$chr,$g_start,$g_end,$ref_dna,$mut_dna) if $v2ensx;
+			&v2dbsnp($uid,$new_vf) if $annotation;
+	#end of foreach $sql result 
+#		close ENS;
+#		close DBS and close PHEN  and close FRE if $annotation;
+		}
+	}else{
+                &help() and exit(0) unless $start and $end and $allele;
+                my($ref,$genotype)=split(/\//,$allele);
+                my $dummy_uid=0;
+		while (@sql_out = $sql->fetchrow_array()){
+			push @sql_out, "$dummy_uid\t$region\t$start\t$end\t$ref\t$genotype";
+		}
+        }
+
 	close ENS;
 	close DBS and close PHEN  and close FRE if $annotation;
+
+        $sql->finish();
+        $dbh->disconnect();
+
 }#end of MAIN
 
 sub v2ensx{
@@ -382,6 +416,11 @@ sub v2dbsnp{
 		#foreach my $anno(@{$v->get_all_VariationAnnotations()}) {
 		foreach my $anno(@{$v->get_all_PhenotypeFeatures()}) {
 		#my $phen_name=$anno->phenotype_name? $anno->phenotype_name:'\N';
+
+			if($DEBUG){
+			print "phenotype:\t,",$rs_id, "\t", $v, "\t", $anno, "\t", $v->get_all_PhenotypeFeatures(), $anno->phenotype->description, "\n";
+			}
+
 			my $phen_anno=$anno->phenotype? $anno->phenotype->description? $anno->phenotype->description:'\N' : '\N';
 			my $exref=$anno->external_reference? $anno->external_reference:'\N';
 			my $p_val=$anno->p_value? $anno->p_value: '\N';
