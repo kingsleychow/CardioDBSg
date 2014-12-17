@@ -1,49 +1,44 @@
 #!/usr/bin/perl -w
-=header1
-last modified
-10/Dec/2012
-Sung Gong <sung.gong@yahoo.com>
-=cut
-
 use strict;
 use Getopt::Long;
+use DBI;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
-use lib '/data/Develop/Perl/lib';
-use Sung::Manager::Config;
+
+my $db='';
+my $dbhost='';
+my $dbport='';
+my $dbuser='';
+my $dbpass='';
+my $CARDIODB_ROOT='';
 
 my $DEBUG=0; #
-my $CARDIODB='CARDIODB_DEVEL';
-
-# Get DB config
-my $db_config='/data/Develop/Perl/lib/Sung/Manager/Config/db.conf';
-my $config=Sung::Manager::Config->get_config_from_file($db_config);
-my $host=$config->{db}{host};
-my $cardiodb=$config->{db}{cardiodb};
-my $nectar=$config->{db}{nectar};
-my $user=$config->{db}{user};
-my $passwd=$config->{db}{passwd};
-my $CARDIODB_ROOT=$config->{CARDIODB_ROOT};
-my $NECTAR_ROOT=$config->{NECTAR_ROOT};
 
 my ($is_sql,$which_db,$all,$region,$start,$end,$allele,$found_only,$not_found_only,$new_entries,$check_alleles,$help);
+
 GetOptions
 (
-	'sql' => \$is_sql,
-	'db:s' => \$which_db,
-	'all!' => \$all,  # a flag
-	'found_only!' => \$found_only, # a flag
-	'not_found_only!' => \$not_found_only, # a flag
-	'new_entries!' => \$new_entries, # a flag
-    'chr:s'	=>	\$region, #optional
-	'start=i'=> \$start,
-	'end=i'=> \$end,
-	'allele=s'=> \$allele,
-	'check_alleles' => \$check_alleles,
-	'help!' => \$help,
+  'db=s'                => \$db,
+  'dbhost=s'            => \$dbhost,
+  'dbport=s'            => \$dbport,
+  'dbuser=s'            => \$dbuser,
+  'dbpass=s'            => \$dbpass,
+  'CARDIODB_ROOT=s'     => \$CARDIODB_ROOT,
+  'sql'			=> \$is_sql,
+  'all!'		=> \$all,  # a flag
+  'found_only!'		=> \$found_only, # a flag
+  'not_found_only!'	=> \$not_found_only, # a flag
+  'new_entries!'	=> \$new_entries, # a flag
+  'chr:s'		=> \$region, #optional
+  'start=i'		=> \$start,
+  'end=i'		=> \$end,
+  'allele=s'		=> \$allele,
+  'check_alleles'	=> \$check_alleles,
+  'help!'		=> \$help,
 );
 
 &help and exit(0) if $help;
+
 if(defined $region){&help and exit(0) unless $region=~m/^(1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22|X|Y|MT)$/};
 
 #############################################################
@@ -51,7 +46,8 @@ if(defined $region){&help and exit(0) unless $region=~m/^(1|2|3|4|5|6|7|8|9|10|1
 ## local ensembl registry: ~/.ensembl_api.conf ##############
 #############################################################
 my $reg = "Bio::EnsEMBL::Registry";
-$reg->load_all(); # from ENSEMBL_RETISTRY (check $ENSEMBL_RERISTRY env)
+my $reg_config = "/other/CardioDBS/ensembl_api.conf";
+$reg->load_all($reg_config); # from ENSEMBL_RETISTRY (check $ENSEMBL_RERISTRY env)
 my $slice_adaptor=$reg->get_adaptor('human','core','slice');
 die "Can't get the slice adaptor\n" unless defined $slice_adaptor;
 
@@ -60,7 +56,10 @@ die "cannot get VariationFeature adaptor\n" unless defined $vfa;
 
 
 MAIN:{
-	my @results;
+	my $dbh;
+	my $sql;
+        my @sql_out;
+
 	# Using SQL to search against _UnifiedCalls table
 	if(defined $is_sql){
 		&help() and exit(0) if defined $all and $region;
@@ -75,88 +74,94 @@ MAIN:{
 		$aux=$not_found_only? 
 			$aux=~/where/? $aux.' and has_found=0': 'where has_found=0'
 			:$aux;
-		my $db=$which_db eq $cardiodb? $cardiodb : $which_db eq $nectar? $nectar : $which_db;
+#		my $db=$which_db eq $cardiodb? $cardiodb : $which_db eq $nectar? $nectar : $which_db;
 
-		my $query= "SELECT id, chr, v_start, v_end, reference, genotype from $db._UnifiedCalls $aux"; # from _UnifiedCallers
-		warn "\e[032m$query\e[0m\n";
+		$dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+			or die "Couldn't connect to database: " . DBI->errstr;
+		$sql=$dbh->prepare("SELECT id, chr, v_start, v_end, reference, genotype from _UnifiedCalls $aux")
+			or die "Couldn't prepare statement: " . $dbh->errstr;
+		$sql->execute()
+			or die "Couldn't execute statement: " . $sql->errstr;
 
-		my $sql=`mysql -h $host -u $user -p$passwd $CARDIODB --skip-column-name -e "$query"`;
-		die "No entries in _UnifiedCalls\n" unless defined $sql;
-		@results=split(/\n/,$sql);
 	# Use the user input
-	}else{
-		&help() and exit(0) unless $start and $end and $allele;
-		my($ref,$genotype)=split(/\//,$allele);
-		my $dummy_uid=0;
-		push @results, "$dummy_uid\t$region\t$start\t$end\t$ref\t$genotype";
-	}
 
-	my $is_colocated=defined $check_alleles? 0 : 1;
+		my $is_colocated=defined $check_alleles? 0 : 1;
 	# read Variations entries
-	foreach (@results){
+
+		while (@sql_out = $sql->fetchrow_array()){
 		####################################
 		########## PRE PROCESS #############
 		####################################
 		#id, sample_id, chr, v_start, v_end, genotype, reference
-		my ($uid,$chr,$g_start,$g_end,$ref_dna,$mut_dna)=split(/\t/,$_);
-		print "chr:$chr\tstart:$g_start\tend:$g_end\tref:$ref_dna\tmut:$mut_dna\n" if $DEBUG;
-		$chr=~s/chr//;
+			my ($uid,$chr,$g_start,$g_end,$ref_dna,$mut_dna)=@sql_out;
+			print "chr:$chr\tstart:$g_start\tend:$g_end\tref:$ref_dna\tmut:$mut_dna\n" if $DEBUG;
+			$chr=~s/chr//;
 		#warn "alternative allele($mut_dna) is not one of ATGC\nchr$chr\t$g_start\t$g_end\t$ref_dna\t$mut_dna\n" unless $mut_dna=~/[ATGC-]/;
 
-		my $allele_string="$ref_dna/$mut_dna";  # the first allele should be the reference allele
-		my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr); 
+			my $allele_string="$ref_dna/$mut_dna";  # the first allele should be the reference allele
+			my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr); 
 
 		# [QC] a slice should be defined by now. 
-		if($DEBUG){
-			my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr);
-			die "no slice chr:$chr\tg_start:$g_start\n" unless defined $slice;
-			print "\e[33mOn Slice:\e[0m ",$slice->name, "\tChr:", $slice->seq_region_name, "\tStrand: ", $slice->strand,"\t[WT]:$ref_dna\t[MUT]:$mut_dna\n";
-		}
-		warn "no slice chr:$chr\tg_start:$g_start\n" and next unless defined $slice;
+			if($DEBUG){
+				my $slice = $slice_adaptor->fetch_by_region('chromosome', $chr);
+				die "no slice chr:$chr\tg_start:$g_start\n" unless defined $slice;
+				print "\e[33mOn Slice:\e[0m ",$slice->name, "\tChr:", $slice->seq_region_name, "\tStrand: ", $slice->strand,"\t[WT]:$ref_dna\t[MUT]:$mut_dna\n";
+			}
+			warn "no slice chr:$chr\tg_start:$g_start\n" and next unless defined $slice;
 
 		# a new VariationFeature object
 		# http://www.ensembl.org/info/docs/api/variation/variation_tutorial.html
 		# create a new VariationFeature object, which is the position of a Variation object on the Genome
-		my $new_vf = Bio::EnsEMBL::Variation::VariationFeature->new(
-			-start => $g_start,
-			-end => $g_end,
-			-slice => $slice,           # the variation must be attached to a slice
-			-allele_string => "$allele_string",    # the first allele should be the reference allele
-			-strand => $slice->strand, # 1 by default
-			-map_weight => 1,
-			-adaptor => $vfa,           # we must attach a variation feature adaptor (defined globally)
-			#-variation_name=> 
-		);
+			my $new_vf = Bio::EnsEMBL::Variation::VariationFeature->new(
+				-start => $g_start,
+				-end => $g_end,
+				-slice => $slice,           # the variation must be attached to a slice
+				-allele_string => "$allele_string",    # the first allele should be the reference allele
+				-strand => $slice->strand, # 1 by default
+				-map_weight => 1,
+				-adaptor => $vfa,           # we must attach a variation feature adaptor (defined globally)
+				#-variation_name=> 
+			);
 
-		my($ref_dbsnp,$ref_clinvar,$ref_hgmd,$ref_cosmic,$ref_esp)=&find_existing($new_vf); 
+			my($ref_dbsnp,$ref_clinvar,$ref_hgmd,$ref_cosmic,$ref_esp)=&find_existing($new_vf); 
 
-		# db id: 1
-		foreach (@{$ref_dbsnp}){
-			print "0\t$uid\t1\t$_\t$is_colocated\t\n";
+			# db id: 1
+			foreach (@{$ref_dbsnp}){
+				print "0\t$uid\t1\t$_\t$is_colocated\t\n";
+			}
+			# db id: 32 
+			foreach (@{$ref_clinvar}){
+				print "0\t$uid\t32\t$_\t$is_colocated\n";
+			}
+			# db id: 8 
+			foreach (@{$ref_hgmd}){
+				print "0\t$uid\t8\t$_\t$is_colocated\n";
+			}
+			# db id: 26 
+			foreach (@{$ref_cosmic}){
+				print "0\t$uid\t26\t$_\t$is_colocated\n";
+			}
+			# db id: 7 
+			foreach (@{$ref_esp}){
+				print "0\t$uid\t7\t$_\t$is_colocated\n";
+			}
+
+			# db id: 0 (hgmd_pro) 
+			# SQL/update_HasFound.hgmd_pro.sql
+
+			# db id: 00 (ICC_Mutation) ?? 
+
+		}#end of foreach $sql result
+	}else{
+                &help() and exit(0) unless $start and $end and $allele;
+                my($ref,$genotype)=split(/\//,$allele);
+                my $dummy_uid=0;
+		while (@sql_out = $sql->fetchrow_array()){
+			push @sql_out, "$dummy_uid\t$region\t$start\t$end\t$ref\t$genotype";
 		}
-		# db id: 32 
-		foreach (@{$ref_clinvar}){
-			print "0\t$uid\t32\t$_\t$is_colocated\n";
-		}
-		# db id: 8 
-		#foreach (@{$ref_hgmd}){
-		#	print "0\t$uid\t8\t$_\t$is_colocated\n";
-		#}
-		# db id: 26 
-		foreach (@{$ref_cosmic}){
-			print "0\t$uid\t26\t$_\t$is_colocated\n";
-		}
-		# db id: 7 
-		foreach (@{$ref_esp}){
-			print "0\t$uid\t7\t$_\t$is_colocated\n";
-		}
-
-		# db id: 0 (hgmd_pro) 
-		# SQL/update_HasFound.hgmd_pro.sql
-
-		# db id: 00 (ICC_Mutation) ?? 
-
-	}#end of foreach $sql result 
+	}
+	$sql->finish();
+	$dbh->disconnect();
 }#end of MAIN
 
 #copied from /data/Install/Perl/ensembl-variation/modules/Bio/EnsEMBL/Variation/Utils/VEP.pm
@@ -244,7 +249,7 @@ sub is_var_novel {
     }
     
 	# if HGMD-PUBLIC, force it to be novel as there aren't any allele_string for this
-	# $is_novel = 0 if $existing_var->[1]==8; 
+	$is_novel = 0 if $existing_var->[1]==8; 
     return $is_novel;
 }
 
