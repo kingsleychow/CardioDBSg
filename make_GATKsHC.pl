@@ -5,10 +5,11 @@ use DBI;
 use warnings;
 
 my $db='';
-my $dbhost='';
-my $dbport='';
-my $dbuser='';
-my $dbpass='';
+#my $dbhost='';
+#my $dbport='';
+#my $dbuser='';
+#my $dbpass='';
+my $dbconfig='';
 my $type='SQL'; #default
 my $DEBUG;  
 my $run_name='';
@@ -19,10 +20,11 @@ GetOptions
   'debug!'		=>	\$DEBUG,
   'run_name=s'		=>	\$run_name,
   'db=s'		=>	\$db,
-  'dbhost=s'		=>	\$dbhost,
-  'dbport=s'		=>	\$dbport,
-  'dbuser=s'		=>	\$dbuser,
-  'dbpass=s'		=>	\$dbpass,
+#  'dbhost=s'		=>	\$dbhost,
+#  'dbport=s'		=>	\$dbport,
+#  'dbuser=s'		=>	\$dbuser,
+#  'dbpass=s'		=>	\$dbpass,
+  'dbconfig=s'		=>	\$dbconfig,
   'pool_name:s'		=>	\$pool_name, #optional
   'sample_name:s'	=>	\$sample_name, #optional
 ) or &usage();
@@ -37,7 +39,8 @@ my $miseq_root='/data1/seq_data/NHCS/MiSeq/results';
 
 
 MAIN: {
-	my $dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+#       my %config = do '/other/CardioDBS/Devel/scripting/cardiodbs_perl.conf';
+	my $dbh = DBI->connect("DBI:mysql:;mysql_read_default_file=$dbconfig",undef,undef)
 		or die "Couldn't connect to database: " . DBI->errstr;
 	my $sql;
 	my @sql_out;

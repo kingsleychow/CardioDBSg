@@ -5,11 +5,12 @@ use DBI;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 
-my $db='';
-my $dbhost='';
-my $dbport='';
-my $dbuser='';
-my $dbpass='';
+#my $db='';
+#my $dbhost='';
+#my $dbport='';
+#my $dbuser='';
+#my $dbpass='';
+my $dbconfig='';
 my $CARDIODB_ROOT='';
 
 my $DEBUG=0; #
@@ -18,11 +19,12 @@ my ($is_sql,$which_db,$all,$region,$start,$end,$allele,$found_only,$not_found_on
 
 GetOptions
 (
-  'db=s'                => \$db,
-  'dbhost=s'            => \$dbhost,
-  'dbport=s'            => \$dbport,
-  'dbuser=s'            => \$dbuser,
-  'dbpass=s'            => \$dbpass,
+#  'db=s'                => \$db,
+#  'dbhost=s'            => \$dbhost,
+#  'dbport=s'            => \$dbport,
+#  'dbuser=s'            => \$dbuser,
+#  'dbpass=s'            => \$dbpass,
+  'dbconfig=s'		=> \$dbconfig,
   'CARDIODB_ROOT=s'     => \$CARDIODB_ROOT,
   'sql'			=> \$is_sql,
   'all!'		=> \$all,  # a flag
@@ -76,7 +78,8 @@ MAIN:{
 			:$aux;
 #		my $db=$which_db eq $cardiodb? $cardiodb : $which_db eq $nectar? $nectar : $which_db;
 
-		$dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+#               my %config = do '/other/CardioDBS/Devel/scripting/cardiodbs_perl.conf';
+		$dbh = DBI->connect("DBI:mysql:;mysql_read_default_file=$dbconfig",undef,undef)
 			or die "Couldn't connect to database: " . DBI->errstr;
 		$sql=$dbh->prepare("SELECT id, chr, v_start, v_end, reference, genotype from _UnifiedCalls $aux")
 			or die "Couldn't prepare statement: " . $dbh->errstr;
@@ -86,6 +89,7 @@ MAIN:{
 	# Use the user input
 
 		my $is_colocated=defined $check_alleles? 0 : 1;
+
 	# read Variations entries
 
 		while (@sql_out = $sql->fetchrow_array()){

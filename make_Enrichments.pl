@@ -6,11 +6,12 @@ use DBI;
 #use lib '/data2/users_data2/kingsley/CardioDBS/Perl/lib'; #ck
 #use Sung::Manager::Config;
 
-my $db='';
-my $dbhost='';
-my $dbport='';
-my $dbuser='';
-my $dbpass='';
+#my $db='';
+#my $dbhost='';
+#my $dbport='';
+#my $dbuser='';
+#my $dbpass='';
+my $dbconfig='';
 my $run_name='';
 my $CARDIODB_ROOT='';
 my $DEBUG;
@@ -29,11 +30,12 @@ GetOptions
 (
   'debug!'              =>      \$DEBUG,
   'run_name=s'          =>      \$run_name,
-  'db=s'                =>      \$db,
-  'dbhost=s'            =>      \$dbhost,
-  'dbport=s'            =>      \$dbport,
-  'dbuser=s'            =>      \$dbuser,
-  'dbpass=s'            =>      \$dbpass,
+#  'db=s'                =>      \$db,
+#  'dbhost=s'            =>      \$dbhost,
+#  'dbport=s'            =>      \$dbport,
+#  'dbuser=s'            =>      \$dbuser,
+#  'dbpass=s'            =>      \$dbpass,
+  'dbconfig=s'		=>	\$dbconfig,
   'CARDIODB_ROOT=s'	=>	\$CARDIODB_ROOT,
 ) or &usage();
 
@@ -41,7 +43,8 @@ warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $
 
 
 MAIN: {
-	my $dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+#       my $config = '/other/CardioDBS/Devel/scripting/cardiodbs_perl_2.conf';
+	my $dbh = DBI->connect("DBI:mysql:;mysql_read_default_file=$dbconfig",undef,undef)
 		or die "Couldn't connect to database: " . DBI->errstr;
 	my $sql;
 	my @sql_out;

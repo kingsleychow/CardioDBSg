@@ -8,11 +8,12 @@ use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 #use lib '/data/Develop/Perl/lib';
 #use Sung::Manager::Config;
 
-my $db='';
-my $dbhost='';
-my $dbport='';
-my $dbuser='';
-my $dbpass='';
+#my $db='';
+#my $dbhost='';
+#my $dbport='';
+#my $dbuser='';
+#my $dbpass='';
+my $dbconfig='';
 my $CARDIODB_ROOT='';
 my $DEBUG=0; #
 #my $CARDIODB='CARDIODB_DEVEL';
@@ -32,11 +33,12 @@ my ($is_sql,$which_db,$all,$region,$start,$end,$allele,$check_alleles,$not_in_v2
 
 GetOptions
 (
-  'db=s'		=> \$db,
-  'dbhost=s'		=> \$dbhost,
-  'dbport=s'		=> \$dbport,
-  'dbuser=s'		=> \$dbuser,
-  'dbpass=s'		=> \$dbpass,
+#  'db=s'		=> \$db,
+#  'dbhost=s'		=> \$dbhost,
+#  'dbport=s'		=> \$dbport,
+#  'dbuser=s'		=> \$dbuser,
+#  'dbpass=s'		=> \$dbpass,
+  'dbconfig=s'		=> \$dbconfig,
   'CARDIODB_ROOT=s'	=> \$CARDIODB_ROOT,
   'sql'			=> \$is_sql,
 #  'db:s'		=> \$which_db,
@@ -102,8 +104,8 @@ MAIN:{
 			$aux=~/where/? $aux.' and is_new=1': 'where is_new=1'
 			:$aux;
 #		my $db=$which_db eq $cardiodb? $cardiodb : $which_db eq $nectar? $nectar : $which_db;
-
-		$dbh = DBI->connect("DBI:mysql:database=$db;host=$dbhost;port=$dbport","$dbuser","$dbpass")
+#               my %config = do '/other/CardioDBS/Devel/scripting/cardiodbs_perl.conf';
+		$dbh = DBI->connect("DBI:mysql:;mysql_read_default_file=$dbconfig",undef,undef)
                         or die "Couldn't connect to database: " . DBI->errstr;
 
                 $sql=$dbh->prepare("SELECT id, chr, v_start, v_end, reference, genotype from _UnifiedCalls $aux")
