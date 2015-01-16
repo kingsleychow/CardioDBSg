@@ -1,0 +1,68 @@
+/* Procedure structure for procedure `insert_metacalls_by_runname_new` */
+
+/*!50003 DROP PROCEDURE IF EXISTS  `insert_metacalls_by_runname_new` */;
+
+DELIMITER $$
+
+/*!50003 CREATE DEFINER=`cardiodbadmin`@`%` PROCEDURE `insert_metacalls_by_runname_new`(IN your_run_name VARCHAR(100))
+BEGIN
+	DECLARE stat VARCHAR(50);
+	DECLARE my_platform VARCHAR(50);
+	
+	SET my_platform=(SELECT platform FROM Runs WHERE run_name=your_run_name);
+	
+	-- 5500xl or SOLiD4
+	IF (my_platform='5500xl' OR my_platform='SOLiD4') THEN
+	
+		REPLACE INTO _MetaCalls (sample_id, uid, dibayes, dp_dibayes, smallindel, gatk, dp_gatk, gatk_hc, dp_gatk_hc, samtool, dp_samtool)    
+		SELECT p.id, u.id, d.id, d.coverage, i.id, g.id, g.t_DP, h.id, h.t_DP, s.id, s.t_DP
+		FROM _UnifiedCalls u
+		JOIN Samples p
+		LEFT JOIN diBayes d ON u.chr=d.chr AND u.v_start=d.v_start AND u.v_end=d.v_end AND u.reference=d.reference AND u.genotype=d.genotype AND p.id=d.sample_id
+		LEFT JOIN SmallIndels i ON u.chr=i.chr AND u.v_start=i.v_start AND u.v_end=i.v_end AND u.reference=i.reference AND u.genotype=i.genotype AND p.id=i.sample_id
+		LEFT JOIN GATKs g ON u.chr=g.chr AND u.v_start=g.v_start AND u.v_end=g.v_end AND u.reference=g.reference AND u.genotype=g.genotype AND p.id=g.sample_id AND g.filter='PASS'
+		LEFT JOIN GATKsHC h ON u.chr=h.chr AND u.v_start=h.v_start AND u.v_end=h.v_end AND u.reference=h.reference AND u.genotype=h.genotype AND p.id=h.sample_id AND h.filter='PASS'
+		LEFT JOIN Samtools s ON u.chr=s.chr AND u.v_start=s.v_start AND u.v_end=s.v_end AND u.reference=s.reference AND u.genotype=s.genotype AND p.id=s.sample_id AND s.variant_type='SNP' 
+		-- at least called once by either diBayes/SmallIndel/GATK/GATK-HC/Samtool
+		WHERE (d.id OR g.id or h.id OR s.id OR i.id)=1
+		AND p.run_name=your_run_name;
+		
+		SET stat='inserted';
+		
+	-- CG (Complete Genomics)
+	ELSEIF my_platform='CG' THEN
+	
+		REPLACE INTO _MetaCalls (sample_id, uid, cg, dp_cg)    
+		SELECT p.id, u.id, c.id, m.total_dp
+		FROM _UnifiedCalls u
+		JOIN Samples p
+		LEFT JOIN CGvars c ON u.`chr`=c.`chr` AND u.`v_start`=c.`v_start` AND u.`v_end`=c.`v_end` AND u.`reference`=c.`reference` AND u.`genotype`=c.`genotype` AND p.id=c.sample_id -- and c.qual='H' -- flagged as high quality by CG
+		LEFT JOIN CGmastervars m ON c.`sample_id`=m.`sample_id` AND c.`locus`=m.`locus`
+		-- at least called once by CGvar
+		WHERE c.id IS NOT NULL
+		AND p.run_name=your_run_name;
+		
+		SET stat='inserted';
+		
+	-- MiSeq, HiSeq, 454
+	ELSEIF (my_platform='MiSeq' OR my_platform='HiSeq' OR my_platform='454' OR my_platform='software') THEN
+	
+		REPLACE INTO _MetaCalls (sample_id, uid, gatk, dp_gatk, gatk_hc, dp_gatk_hc, samtool, dp_samtool)    
+		SELECT p.id, u.id, g.id, g.t_DP, h.id, h.t_DP, s.id, s.t_DP
+		FROM _UnifiedCalls u
+		JOIN Samples p
+		LEFT JOIN GATKs g ON u.chr=g.chr AND u.v_start=g.v_start AND u.v_end=g.v_end AND u.reference=g.reference AND u.genotype=g.genotype AND p.id=g.sample_id AND g.filter='PASS'
+		LEFT JOIN GATKsHC h ON u.chr=h.chr AND u.v_start=h.v_start AND u.v_end=h.v_end AND u.reference=h.reference AND u.genotype=h.genotype AND p.id=h.sample_id AND h.filter='PASS'
+		LEFT JOIN Samtools s ON u.chr=s.chr AND u.v_start=s.v_start AND u.v_end=s.v_end AND u.reference=s.reference AND u.genotype=s.genotype AND p.id=s.sample_id AND s.variant_type='SNP' 	
+		-- at least called once by either GATK/GATK-HC/Samtool
+		WHERE (g.id OR h.id or s.id)=1
+		AND p.run_name=your_run_name;
+		
+		SET stat='inserted';
+	ELSE 
+		SET stat='no_such_platform';
+	END IF;
+	
+	SELECT stat;
+    END */$$
+DELIMITER ;
