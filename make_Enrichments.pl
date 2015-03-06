@@ -15,6 +15,8 @@ my $dbconfig='';
 my $run_name='';
 my $CARDIODB_ROOT='';
 my $DEBUG;
+my $result_root='';
+my $miseq_result_root='';
 
 #my $db_config='/data2/users_data2/kingsley/CardioDBS/Perl/lib/Sung/Manager/Config/db.conf'; #ck
 #my $config=Sung::Manager::Config->get_config_from_file($db_config);
@@ -37,6 +39,7 @@ GetOptions
 #  'dbpass=s'            =>      \$dbpass,
   'dbconfig=s'		=>	\$dbconfig,
   'CARDIODB_ROOT=s'	=>	\$CARDIODB_ROOT,
+  'miseq_result_path=s'	=>	\$miseq_result_root
 ) or &usage();
 
 warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $run_name;
@@ -68,7 +71,7 @@ MAIN: {
 			#CallableBySample_ProteinCodingTarget_130320_SN172_0376_AD1Y6JACXX_Hari_AB_S0411142.txt
 			#PerOfCallableBy_ProteinCodingTarget_130320_SN172_0376_AD1Y6JACXX_Hari_AB_S0411142.txt
 		}elsif($machine eq 'MiSeq'){
-			$result_root='/data1/seq_data/NHCS/MiSeq/results';
+			$result_root=$miseq_result_root;
 			#/data/results/MiSeq/130531_M01389_0014_000000000-A3F2A/Coverage_Report/
 			#SummaryOutput_ProteinCodingTarget_130531_M01389_0014_000000000-A3F2A.txt
 			#CallableByRun_ProteinCodingTarget_130531_M01389_0014_000000000-A3F2A_PRDM16_Fluidigm.txt

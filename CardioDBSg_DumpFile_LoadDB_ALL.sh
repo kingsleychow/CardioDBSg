@@ -40,8 +40,9 @@ for RUN in ${RUNS}; do
 	############################
 	##### Runs and Samples #####
 	############################
+	echo "===================================="
 	echo "=====${RUN}====="
-	echo "====================="
+	echo "===================================="
 	printf "Copying CSV to Dump directory"
 	
 	### Dump file ###
@@ -52,16 +53,18 @@ for RUN in ${RUNS}; do
 	echo "Updating Runs and Samples"
 	
 	### Database ###
-        printf "  Loading data into Runs"
+        printf "+++  Loading data into Runs"
 	echo "### Loading data into Runs ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
         $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --verbose --ignore --fields-terminated-by=',' --lines-terminated-by='\n' --ignore-lines=1 $CARDIODBS_PATH/Dump/Runs/Runs.${RUN}.csv >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log 2>&1
+	echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
         echo " =====> Done!"
 
-        printf "  Loading data into Samples"
+        printf "+++  Loading data into Samples"
 	echo "### Loading data into Samples ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
         $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --verbose --ignore --fields-terminated-by=',' --lines-terminated-by='\n' --ignore-lines=1 $CARDIODBS_PATH/Dump/Samples/Samples.${RUN}.csv >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log 2>&1
+	echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
 	echo " =====> Done!"
-	echo "====================="
+	echo "==================================="
 
 	############################
 	##### Differet Callers #####
@@ -71,21 +74,22 @@ for RUN in ${RUNS}; do
 	for CALLER in ${CALLERS} ;
         do
 	  ### Dump file ###
-	  printf "  Preparing dump file for ${CALLER}"
+	  printf "+++  Preparing dump file for ${CALLER}"
 	  PARSER=${CARDIODBS_PATH}/bin/make_${CALLER}.pl
 	  echo "### Preparing dump file for ${CALLER} ###" >> log_cardiodbs_$DATE/${CALLER}.$DATE.$RUN.log
-	  perl ${PARSER} --run_name ${RUN} --dbconfig $DB_CONFIG > ${CARDIODBS_PATH}/Dump/${CALLER}/${CALLER}.${RUN}.txt 2>> log_cardiodbs_$DATE/${CALLER}.$DATE.$RUN.log
+	  perl ${PARSER} --run_name ${RUN} --dbconfig $DB_CONFIG --miseq_result_path $MISEQ_PATH > ${CARDIODBS_PATH}/Dump/${CALLER}/${CALLER}.${RUN}.txt 2>> log_cardiodbs_$DATE/${CALLER}.$DATE.$RUN.log
 	  echo " =====> Done!"
 
 	  ### Database ###
-	  printf "  Loading data into ${CALLER}"
+	  printf "+++  Loading data into ${CALLER}"
           if [ -s ${CARDIODBS_PATH}/Dump/${CALLER}/${CALLER}.${RUN}.txt ]; then
 		echo "### Loading data into ${CALLER} ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
           	$MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --verbose --replace ${CARDIODBS_PATH}/Dump/${CALLER}/${CALLER}.${RUN}.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log 2>&1
+		echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
           	echo " =====> Done!";
 	  fi
 	done
-	echo "====================="
+	echo "=================================="
 	
 	###################################################
 	##### SampleEnrichments and CodingEnrichments #####
@@ -93,21 +97,22 @@ for RUN in ${RUNS}; do
 	echo "Prepare SampleEnrichments and CodingEnrichments dump file and update tables"
 	
 	### Dump file ###	
-	printf "  Preparing dump file for SampleEnrichments and CodingEnrichments"
+	printf "+++  Preparing dump file for SampleEnrichments and CodingEnrichments"
 	echo "### Preparing dump file for SampleEnrichments and CodingEnrichments ###" >> log_cardiodbs_$DATE/Enrichment.$DATE.$RUN.log
-	perl ${CARDIODBS_PATH}/bin/make_Enrichments.pl --run_name $RUN --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} 2>> log_cardiodbs_$DATE/Enrichment.$DATE.$RUN.log
+	perl ${CARDIODBS_PATH}/bin/make_Enrichments.pl --run_name $RUN --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --miseq_result_path $MISEQ_PATH 2>> log_cardiodbs_$DATE/Enrichment.$DATE.$RUN.log
 	echo " =====> Done!";
 	
 	### Database ###
 	if [[ ${RUN} =~ "_M02463_" ]]; then
-          printf "  Loading data into SampleEnrichments and CodingEnrichments"
+          printf "+++  Loading data into SampleEnrichments and CodingEnrichments"
 	  echo "### Loading data into SampleEnrichments and CodingEnrichments ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
           $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --verbose --replace ${CARDIODBS_PATH}/Dump/Enrichments/SampleEnrichments.${RUN}.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log 2>&1
           $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --verbose --replace ${CARDIODBS_PATH}/Dump/Enrichments/CodingEnrichments.${RUN}.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log 2>&1
+	  echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.$RUN.log
           echo " =====> Done!";
         fi
 
-	echo "====================="
+	echo "=================================="
 	echo ""
 done
 	
@@ -119,15 +124,17 @@ echo "###############"
 echo "Prepare HasFound dump file and update tables"
 
 ### Dump file ###
-printf "  Preparing dump file for HasFound"
+printf "+++  Preparing dump file for HasFound"
 echo "### Preparing dump file for HasFound ###" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 perl ${CARDIODBS_PATH}/bin/make_HasFound.pl --sql --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --new_entries --check_alleles > ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.txt 2>> log_cardiodbs_$DATE/HasFound.added.$DATE.log
+echo "" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 echo " =====> Done!"
 
 ### Database ###
-printf "  Loading data into HasFound"
+printf "+++  Loading data into HasFound"
 echo "### Loading data into HasFound ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --replace ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 echo " =====> Done!"
 
 ##########################################
@@ -136,18 +143,20 @@ echo " =====> Done!"
 echo "Preparing another dump file for HasFound and update table - Incremental"
 
 ### Dump file ###
-printf "  Preparing dump file for HasFound - Incremental"
+printf "+++  Preparing dump file for HasFound - Incremental"
 echo "### Preparing dump file for HasFound - Incremental ###" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 perl ${CARDIODBS_PATH}/bin/make_HasFound.pl --sql --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --new_entries > ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.colocated.txt 2>> log_cardiodbs_$DATE/HasFound.added.$DATE.log
+echo "" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 echo " =====> Done!"
 
 ### Database ###
-printf "  Loading data into HasFound - Incremental"
+printf "+++  Loading data into HasFound - Incremental"
 echo "### Loading data into HasFound - Incremental ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --ignore ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.colocated.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 echo " =====> Done!"
 
-echo "====================="
+echo "================================="
 
 ###############################################
 ##### _UnifiedCalls (Incremental Updates) #####
@@ -155,12 +164,13 @@ echo "====================="
 echo "Updating _UnifiedCalls table - Incremental"
 
 ### Database ###
-printf "  Update _UnifiedCalls table with HasFound - Incremental"
+printf "+++  Update _UnifiedCalls table with HasFound - Incremental"
 echo "### Update _UnifiedCalls table with HasFound - Incremental ###" >> log_cardiodbs_$DATE/mysql.$DATE.log
 $MYSQL_PATH/bin/mysql --defaults-extra-file=$DB_CONFIG < ${CARDIODBS_PATH}/SQL/update_UnifiedCalls.has_found.sql >> log_cardiodbs_$DATE/mysql.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysql.$DATE.log
 echo " =====> Done!"
 
-echo "====================="
+echo "================================="
 
 ####################
 ##### V2dbNSFP #####
@@ -171,9 +181,9 @@ echo "Updating V2dbNSFP table"
 printf "  Update V2dbNSFP table with _UnifiedCalls and dbNSFP (NECTAR)"
 echo "### Update V2dbNSFP table with _UnifiedCalls and dbNSFP (NECTAR) ###" >> log_cardiodbs_$DATE/mysql.$DATE.log
 $MYSQL_PATH/bin/mysql --defaults-extra-file=$DB_CONFIG < ${CARDIODBS_PATH}/SQL/update_V2dbNSFP.sql >> log_cardiodbs_$DATE/mysql.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysql.$DATE.log
 echo " =====> Done!"
-
-echo "====================="
+echo "================================"
 
 ############################################
 ##### _MetaCalls (Incremental Updates) #####
@@ -181,15 +191,16 @@ echo "====================="
 echo "Updating _MetaCalls table"
 
 ### Database ###
-printf "  Update _MetaCalls table with _UnifiedCalls and all Caller tables\n"
+printf "+++  Update _MetaCalls table with _UnifiedCalls and all Caller tables\n"
 for RUN in ${RUNS} ; do
-	printf "  Updating _MetaCalls for ${RUN}"
+	printf "+++  Updating _MetaCalls for ${RUN}"
 	echo "### Updating _MetaCalls for ${RUN} ###" >> log_cardiodbs_$DATE/mysql.$DATE.$RUN.log
 	$MYSQL_PATH/bin/mysql --defaults-extra-file=$DB_CONFIG -e "call insert_metacalls_by_runname_new('${RUN}')" >> log_cardiodbs_$DATE/mysql.$DATE.$RUN.log 2>&1
+	echo "" >> log_cardiodbs_$DATE/mysql.$DATE.$RUN.log
 	echo " =====> Done!"
 done
 
-echo "====================="
+echo "================================"
 
 ############################################
 ##### V2Ensembls (Incremental Updates) #####
@@ -197,34 +208,39 @@ echo "====================="
 echo "Updating V2Ensembls, V2dbSNPs, V2Freqs and V2Phens table"
 
 ### Dump File ###
-printf "  Preparing dump file for V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
+printf "+++  Preparing dump file for V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
 echo "### Preparing dump file for V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental ###" >> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
 perl ${CARDIODBS_PATH}/bin/make_V2Ensembls.pl --sql --all --new_entries --v2ensx --annotation --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} 2>> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
+echo "" >> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
 echo " =====> Done!"
 
 ### Database ###
-printf "  Loading data into V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
-printf "  Loading data into V2Ensembls - Incremental"
+printf "+++  Loading data into V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
+printf "+++  Loading data into V2Ensembls - Incremental"
 echo "### Loading data into V2Ensembls - Incremental ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --replace ${CARDIODBS_PATH}/Dump/V2Ensembls/V2Ensembls.all.added.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 echo " =====> Done!"
 
-printf "  Loading data into V2dbSNPs - Incremental"
+printf "+++  Loading data into V2dbSNPs - Incremental"
 echo "### Loading data into V2dbSNPs - Incremental ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --replace ${CARDIODBS_PATH}/Dump/V2dbSNPs/V2dbSNPs.all.added.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 echo " =====> Done!"
 
-printf "  Loading data into V2Phens - Incremental"
+printf "+++  Loading data into V2Phens - Incremental"
 echo "### Loading data into V2Phens - Incremental ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --replace ${CARDIODBS_PATH}/Dump/V2Phens/V2Phens.all.added.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 echo " =====> Done!"
 
-printf "  Loading data into V2Freqs - Incremental"
+printf "+++  Loading data into V2Freqs - Incremental"
 echo "### Loading data into V2Freqs - Incremental ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --replace ${CARDIODBS_PATH}/Dump/V2Freqs/V2Freqs.all.added.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
+echo "" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 echo " =====> Done!"
 
-echo "====================="
+echo "=============================="
 
 
 

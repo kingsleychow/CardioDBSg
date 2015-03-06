@@ -12,6 +12,8 @@ my $dbconfig='';
 my $type='SQL'; #default
 my $DEBUG;  
 my $run_name='';
+my $result_root='';
+my $miseq_result_root='';
 my ($pool_name,$sample_name);
 
 GetOptions
@@ -26,6 +28,7 @@ GetOptions
   'dbconfig=s'		=>	\$dbconfig,
   'pool_name:s'		=>	\$pool_name, #optional
   'sample_name:s'	=>	\$sample_name, #optional
+  'miseq_result_path=s'	=>	\$miseq_result_root
 ) or &usage();
 
 warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $run_name;
@@ -33,7 +36,7 @@ warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $
 #my $solid_root="/data/results/s0464.pssc";
 ##my $fff_root="/data/results/454";
 ##my $hiseq_root='/data/results/HiSeq';
-my $miseq_root='/data1/seq_data/NHCS/MiSeq/results';
+#my $miseq_root='/data1/seq_data/NHCS/MiSeq/results';
 ##my $xl_root='/data/results/5500xl/projects/lifescope';
 #my $result_root;
 
@@ -82,8 +85,9 @@ MAIN: {
 			#/data/results/HiSeq/130118_SN674_0199_AC13LGACXX/MYRN_SureSelect/BWA_gatk_snp_indel/20AA02416/Target/20AA02416_AGTCACTA.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf
 #			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf" unless -s $gatk_indel;
 		}elsif($machine eq 'MiSeq'){
-			my $pool_dir=$miseq_root.'/'.$run_name.'/'.$pool_name;
-			$pool_dir=$miseq_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $miseq_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
+			$result_root=$miseq_result_root;
+			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
+			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $miseq_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
 
 			#/data/results/MiSeq/130103_M01389_0002_000000000-A2V7A/Lane2/BWA_gatk_snp_indel/20AA02402/Target/20AA02402_AACGTG.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf
 			#/data/results/MiSeq/130531_M01389_0014_000000000-A3F2A/PRDM16_Fluidigm/BWA_gatk_snp_indel/14EG01498a/Target/14EG01498a.Realigned.recalibrated.OnTarget.q8.bam.snp.vcf
