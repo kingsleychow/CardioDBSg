@@ -89,7 +89,7 @@ MAIN: {
 		}elsif($machine eq 'MiSeq'){
 			$result_root=$miseq_result_root;
 			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
-			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $miseq_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
+			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
 
 			#/data/results/MiSeq/130103_M01389_0002_000000000-A2V7A/Lane2/BWA_gatk_snp_indel/20AA02402/Target/20AA02402_AACGTG.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf
 			#/data/results/MiSeq/130531_M01389_0014_000000000-A3F2A/PRDM16_Fluidigm/BWA_gatk_snp_indel/14EG01498a/Target/14EG01498a.Realigned.recalibrated.OnTarget.q8.bam.snp.vcf
