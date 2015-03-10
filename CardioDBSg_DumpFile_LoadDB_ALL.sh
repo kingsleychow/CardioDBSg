@@ -35,6 +35,33 @@ fi
 ##### Create log folder #####
 mkdir log_cardiodbs_$DATE
 
+#########################################################
+###### Update _UnifiedCalls table for existing data #####
+#########################################################
+echo "==================================="
+echo "Update existing _UnifiedCalls table"
+echo "==================================="
+echo "Update _UnifiedCalls table for existing data prior to current run"
+
+### _UnifiedCalls.is_new ###
+printf "+++ Updating UnifiedCalls.is_new=0"
+echo "### Update _UnifiedCalls.is_new=0 ###" >> log_cardiodbs_$DATE/mysql.$DATE.log
+$MYSQL_PATH/bin/mysql --defaults-extra-file=$DB_CONFIG < ${CARDIODBS_PATH}/SQL/update_UnifiedCalls.is_new.sql
+echo "" >> log_cardiodbs_$DATE/mysql.$DATE.log
+echo " =====> Done!"
+
+### _UnifiedCalls.in_ensembl ###
+printf "+++ Updating UnifiedCalls.in_ensembl=1"
+echo "### Update _UnifiedCalls.in_ensembl=1 ###" >> log_cardiodbs_$DATE/mysql.$DATE.log
+$MYSQL_PATH/bin/mysql --defaults-extra-file=$DB_CONFIG < ${CARDIODBS_PATH}/SQL/update_UnifiedCalls.in_ensembl.sql
+echo "" >> log_cardiodbs_$DATE/mysql.$DATE.log
+echo " =====> Done!"
+
+echo "================================="
+
+########################
+##### Current Runs #####
+########################
 for RUN in ${RUNS}; do 
 	
 	############################
@@ -178,8 +205,8 @@ echo "================================="
 echo "Updating V2dbNSFP table"
 
 ### Database ###
-printf "  Update V2dbNSFP table with _UnifiedCalls and dbNSFP (NECTAR)"
-echo "### Update V2dbNSFP table with _UnifiedCalls and dbNSFP (NECTAR) ###" >> log_cardiodbs_$DATE/mysql.$DATE.log
+printf "+++  Update V2dbNSFP table with _UnifiedCalls and dbNSFP"
+echo "### Update V2dbNSFP table with _UnifiedCalls and dbNSFP ###" >> log_cardiodbs_$DATE/mysql.$DATE.log
 $MYSQL_PATH/bin/mysql --defaults-extra-file=$DB_CONFIG < ${CARDIODBS_PATH}/SQL/update_V2dbNSFP.sql >> log_cardiodbs_$DATE/mysql.$DATE.log 2>&1
 echo "" >> log_cardiodbs_$DATE/mysql.$DATE.log
 echo " =====> Done!"
