@@ -242,7 +242,7 @@ echo "" >> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
 echo " =====> Done!"
 
 ### Database ###
-printf "+++  Loading data into V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
+echo "+++  Loading data into V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
 printf "+++  Loading data into V2Ensembls - Incremental"
 echo "### Loading data into V2Ensembls - Incremental ###" >> log_cardiodbs_$DATE/mysqlimport.$DATE.log
 $MYSQL_PATH/bin/mysqlimport --defaults-extra-file=$DB_CONFIG_IMPORT $DB --local --lock-tables --replace ${CARDIODBS_PATH}/Dump/V2Ensembls/V2Ensembls.all.added.txt >> log_cardiodbs_$DATE/mysqlimport.$DATE.log 2>&1
