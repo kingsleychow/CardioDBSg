@@ -17,6 +17,8 @@ my $CARDIODB_ROOT='';
 my $DEBUG;
 my $result_root='';
 my $miseq_result_root='';
+my $nextseq_result_root='';
+
 
 #my $db_config='/data2/users_data2/kingsley/CardioDBS/Perl/lib/Sung/Manager/Config/db.conf'; #ck
 #my $config=Sung::Manager::Config->get_config_from_file($db_config);
@@ -30,16 +32,17 @@ my $miseq_result_root='';
 
 GetOptions
 (
-  'debug!'              =>      \$DEBUG,
-  'run_name=s'          =>      \$run_name,
-#  'db=s'                =>      \$db,
-#  'dbhost=s'            =>      \$dbhost,
-#  'dbport=s'            =>      \$dbport,
-#  'dbuser=s'            =>      \$dbuser,
-#  'dbpass=s'            =>      \$dbpass,
-  'dbconfig=s'		=>	\$dbconfig,
-  'CARDIODB_ROOT=s'	=>	\$CARDIODB_ROOT,
-  'miseq_result_path=s'	=>	\$miseq_result_root
+  'debug!'                =>      \$DEBUG,
+  'run_name=s'            =>      \$run_name,
+#  'db=s'                 =>      \$db,
+#  'dbhost=s'             =>      \$dbhost,
+#  'dbport=s'             =>      \$dbport,
+#  'dbuser=s'             =>      \$dbuser,
+#  'dbpass=s'             =>      \$dbpass,
+  'dbconfig=s'		  =>	  \$dbconfig,
+  'CARDIODB_ROOT=s'	  =>	  \$CARDIODB_ROOT,
+  'miseq_result_path=s'	  =>	  \$miseq_result_root,
+  'nextseq_result_path=s' =>      \$nextseq_result_root
 ) or &usage();
 
 warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $run_name;
@@ -72,19 +75,8 @@ MAIN: {
 			#PerOfCallableBy_ProteinCodingTarget_130320_SN172_0376_AD1Y6JACXX_Hari_AB_S0411142.txt
 		}elsif($machine eq 'MiSeq'){
 			$result_root=$miseq_result_root;
-			#/data/results/MiSeq/130531_M01389_0014_000000000-A3F2A/Coverage_Report/
-			#SummaryOutput_ProteinCodingTarget_130531_M01389_0014_000000000-A3F2A.txt
-			#CallableByRun_ProteinCodingTarget_130531_M01389_0014_000000000-A3F2A_PRDM16_Fluidigm.txt
-			#CallableBySample_ProteinCodingTarget_130531_M01389_0014_000000000-A3F2A_PRDM16_Fluidigm.txt
-			#PerOfCallableBy_ProteinCodingTarget_130531_M01389_0014_000000000-A3F2A_PRDM16_Fluidigm.txt
-			#
-			#
-			#/data/results/MiSeq/130613_M01389_0016_000000000-A4TDC/Coverage_Report/
-			#SummaryOutput_ProteinCodingTarget_130613_M01389_0016_000000000-A4TDC.txt
-			#CallableByRun_ProteinCodingTarget_130613_M01389_0016_000000000-A4TDC_XT2_177gene_0482031.txt
-			#CallableBySample_ProteinCodingTarget_130613_M01389_0016_000000000-A4TDC_XT2_177gene_0482031.txt
-			#PerOfCallableBy_ProteinCodingTarget_130613_M01389_0016_000000000-A4TDC_XT2_177gene_0482031.txt
-			#
+		}elsif($machine eq 'NextSeq 500'){
+			$result_root=$nextseq_result_root;
 		}else{
 			warn "\e[031mOnly for Soid4, 454, 5500XL, HiSeq or MiSeq\e[0m\n" and next;
 		}

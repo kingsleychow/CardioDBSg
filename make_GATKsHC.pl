@@ -15,21 +15,23 @@ my $DEBUG;
 my $run_name='';
 my $result_root='';
 my $miseq_result_root='';
+my $nextseq_result_root='';
 my ($pool_name,$sample_name);
 
 GetOptions
 (
-  'debug!'		=>	\$DEBUG,
-  'run_name=s'		=>	\$run_name,
-  'db=s'		=>	\$db,
-#  'dbhost=s'		=>	\$dbhost,
-#  'dbport=s'		=>	\$dbport,
-#  'dbuser=s'		=>	\$dbuser,
-#  'dbpass=s'		=>	\$dbpass,
-  'dbconfig=s'		=>	\$dbconfig,
-  'pool_name:s'		=>	\$pool_name, #optional
-  'sample_name:s'	=>	\$sample_name, #optional
-  'miseq_result_path=s'	=>	\$miseq_result_root
+  'debug!'		  =>	\$DEBUG,
+  'run_name=s'		  =>	\$run_name,
+  'db=s'		  =>	\$db,
+#  'dbhost=s'		  =>	\$dbhost,
+#  'dbport=s'		  =>	\$dbport,
+#  'dbuser=s'		  =>	\$dbuser,
+#  'dbpass=s'		  =>	\$dbpass,
+  'dbconfig=s'		  =>	\$dbconfig,
+  'pool_name:s'		  =>	\$pool_name, #optional
+  'sample_name:s'	  =>	\$sample_name, #optional
+  'miseq_result_path=s'	  =>	\$miseq_result_root,
+  'nextseq_result_path=s' =>    \$nextseq_result_root
 ) or &usage();
 
 warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $run_name;
@@ -111,6 +113,22 @@ MAIN: {
 			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.final.HaplotypeCaller.indel.vcf" unless -s $gatk_indel;
 
 			# /data/results/MiSeq/131122_M01389_0027_000000000-A61C8/Nextera_177Gene/gatk_snp_indel/13G000020/Target/HaplotypeCaller/13G000020.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.HaplotypeCaller.indel.vcf
+		}elsif($machine eq 'NextSeq 500'){
+			$result_root=$nextseq_result_root;
+			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
+			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
+
+			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf";
+			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.snp.vcf" unless -s $gatk_snp;
+			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.HaplotypeCaller.snp.vcf" unless -s $gatk_snp;
+			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.HaplotypeCaller.snp.vcf" unless -s $gatk_snp;
+			$gatk_snp="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.final.HaplotypeCaller.snp.vcf" unless -s $gatk_snp;
+
+			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf";
+			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.indel.vcf" unless -s $gatk_indel;
+			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.final.HaplotypeCaller.indel.vcf" unless -s $gatk_indel;
+			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.HaplotypeCaller.indel.vcf" unless -s $gatk_indel;
+			$gatk_indel="$pool_dir/gatk_snp_indel/$sample_name/Target/HaplotypeCaller/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.final.HaplotypeCaller.indel.vcf" unless -s $gatk_indel;
 		}else{
 			warn "\e[031mGATKs only for Soid4, 454, 5500XL, HiSeq or MiSeq\e[0m\n" and next;
 		}

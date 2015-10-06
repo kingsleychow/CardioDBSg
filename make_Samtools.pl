@@ -14,21 +14,23 @@ my $DEBUG;
 my $run_name='';
 my $result_root='';
 my $miseq_result_root='';
+my $nextseq_result_root='';
 my ($pool_name,$sample_name);
 
 GetOptions
 (
-  'debug!'		=>	\$DEBUG,
-  'run_name=s'		=>	\$run_name,
-  'db=s'		=>	\$db,
-#  'dbhost=s'		=>	\$dbhost,
-#  'dbport=s'		=>	\$dbport,
-#  'dbuser=s'		=>	\$dbuser,
-#  'dbpass=s'		=>	\$dbpass,
-  'dbconfig=s'		=>	\$dbconfig,
-  'pool_name:s'		=>	\$pool_name, #optional
-  'sample_name:s'	=>	\$sample_name, #optional
-  'miseq_result_path=s'	=>	\$miseq_result_root
+  'debug!'		  =>	\$DEBUG,
+  'run_name=s'		  =>	\$run_name,
+  'db=s'		  =>	\$db,
+#  'dbhost=s'		  =>	\$dbhost,
+#  'dbport=s'		  =>	\$dbport,
+#  'dbuser=s'		  =>	\$dbuser,
+#  'dbpass=s'		  =>	\$dbpass,
+  'dbconfig=s'		  =>	\$dbconfig,
+  'pool_name:s'		  =>	\$pool_name, #optional
+  'sample_name:s'	  =>	\$sample_name, #optional
+  'miseq_result_path=s'	  =>	\$miseq_result_root,
+  'nextseq_result_path=s' =>    \$nextseq_result_root
 ) or &usage();
 
 warn "\e[33mrequired argument value for --run_name\e[0m\n" and &usage() unless $run_name;
@@ -81,6 +83,13 @@ MAIN: {
 			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
 			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
 			#/data/results/MiSeq/130531_M01389_0014_000000000-A3F2A/PRDM16_Fluidigm/BWA_gatk_snp_indel/14EG01498a/Target/14EG01498a.Realigned.recalibrated.OnTarget.q8.bam.samtools.flt.vcf
+			$sam_flt="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.samtools.flt.vcf";
+			$sam_flt="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.samtools.flt.vcf" unless -s $sam_flt;
+			$sam_flt="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.samtools.flt.vcf" unless -s $sam_flt;
+		}elsif($machine eq 'NextSeq 500'){
+			$result_root=$nextseq_result_root;
+			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
+			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
 			$sam_flt="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.samtools.flt.vcf";
 			$sam_flt="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.Realigned.recalibrated.OnTarget.q8.bam.samtools.flt.vcf" unless -s $sam_flt;
 			$sam_flt="$pool_dir/gatk_snp_indel/$sample_name/Target/$sample_name.markDup.Realigned.recalibrated.OnTarget.q15.bam.samtools.flt.vcf" unless -s $sam_flt;

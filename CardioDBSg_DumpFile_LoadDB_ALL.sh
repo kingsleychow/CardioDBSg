@@ -104,7 +104,7 @@ for RUN in ${RUNS}; do
 	  printf "+++  Preparing dump file for ${CALLER}"
 	  PARSER=${CARDIODBS_PATH}/bin/make_${CALLER}.pl
 	  echo "### Preparing dump file for ${CALLER} ###" >> log_cardiodbs_$DATE/${CALLER}.$DATE.$RUN.log
-	  perl ${PARSER} --run_name ${RUN} --dbconfig $DB_CONFIG --miseq_result_path $MISEQ_PATH > ${CARDIODBS_PATH}/Dump/${CALLER}/${CALLER}.${RUN}.txt 2>> log_cardiodbs_$DATE/${CALLER}.$DATE.$RUN.log
+	  perl ${PARSER} --run_name ${RUN} --dbconfig $DB_CONFIG --miseq_result_path $MISEQ_PATH --nextseq_result_path $NEXTSEQ_PATH > ${CARDIODBS_PATH}/Dump/${CALLER}/${CALLER}.${RUN}.txt 2>> log_cardiodbs_$DATE/${CALLER}.$DATE.$RUN.log
 	  echo " =====> Done!"
 
 	  ### Database ###
@@ -126,7 +126,7 @@ for RUN in ${RUNS}; do
 	### Dump file ###	
 	printf "+++  Preparing dump file for SampleEnrichments and CodingEnrichments"
 	echo "### Preparing dump file for SampleEnrichments and CodingEnrichments ###" >> log_cardiodbs_$DATE/Enrichment.$DATE.$RUN.log
-	perl ${CARDIODBS_PATH}/bin/make_Enrichments.pl --run_name $RUN --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --miseq_result_path $MISEQ_PATH 2>> log_cardiodbs_$DATE/Enrichment.$DATE.$RUN.log
+	perl ${CARDIODBS_PATH}/bin/make_Enrichments.pl --run_name $RUN --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --miseq_result_path $MISEQ_PATH --nextseq_result_path $NEXTSEQ_PATH 2>> log_cardiodbs_$DATE/Enrichment.$DATE.$RUN.log
 	echo " =====> Done!";
 	
 	### Database ###
