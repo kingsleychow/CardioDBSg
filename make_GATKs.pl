@@ -113,7 +113,7 @@ MAIN: {
 			# /data/results/MiSeq/131122_M01389_0027_000000000-A61C8/Nextera_177Gene/gatk_snp_indel/13G000020/Target/UnifiedGenotyper/13G000020.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf
 #			$gatk_indel="$pool_dir/gatk_snp_indel/$old_sample_name/Target/UnifiedGenotyper/$old_sample_name.markDup.Realigned.recalibrated.OnTarget.q8.bam.final.UnifiedGenotyper.indel.vcf" unless -s $gatk_indel;
 
-		}elseif($machine eq 'NextSeq 500'){
+		}elsif($machine eq 'NextSeq 500'){
 			$result_root=$nextseq_result_root;
 			my $pool_dir=$result_root.'/'.$run_name.'/'.$pool_name;
 			$pool_dir=$result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id if -d $result_root.'/'.$run_name.'/'.$pool_name.'_'.$target_id;
