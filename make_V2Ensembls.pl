@@ -429,7 +429,7 @@ sub v2dbsnp{
 			#my $risk_allele=$anno->associated_variant_risk_allele? $anno->associated_variant_risk_allele:'\N'; # depreciated since ver 71
 			my $risk_allele=$anno->risk_allele? $anno->risk_allele:'\N';
 			#my $source_name=$anno->source_name? $anno->source_name:'\N'; # deprecated since ver 71
-			my $source_name=$anno->source? $anno->source:'\N'; 
+			my $source_name=$anno->source_name? $anno->source_name:'\N'; 
 
 			my $study_desc=$anno->study_description? $anno->study_description:'\N';
 			#my $study_name=$anno->study_name? $anno->study_name:'\N'; # too sparse
