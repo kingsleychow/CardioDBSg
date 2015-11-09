@@ -44,7 +44,6 @@ if(defined $region){&help and exit(0) unless $region=~m/^(1|2|3|4|5|6|7|8|9|10|1
 ## local ensembl registry: ~/.ensembl_api.conf ##############
 #############################################################
 my $reg = "Bio::EnsEMBL::Registry";
-#my $reg_config = $ensembl_api_conf;
 $reg->load_all($ensembl_api_conf); # from ENSEMBL_RETISTRY (check $ENSEMBL_RERISTRY env)
 
 my $slice_adaptor = $reg->get_adaptor('human','core','slice');

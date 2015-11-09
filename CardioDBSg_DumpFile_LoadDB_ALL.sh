@@ -153,7 +153,7 @@ echo "Prepare HasFound dump file and update tables"
 ### Dump file ###
 printf "+++  Preparing dump file for HasFound"
 echo "### Preparing dump file for HasFound ###" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
-perl ${CARDIODBS_PATH}/bin/make_HasFound.pl --sql --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --new_entries --check_alleles > ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.txt 2>> log_cardiodbs_$DATE/HasFound.added.$DATE.log
+perl ${CARDIODBS_PATH}/bin/make_HasFound.pl --sql --new_entries --check_alleles --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --ens_api_conf $ENSEMBL_API > ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.txt 2>> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 echo "" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 echo " =====> Done!"
 
@@ -172,7 +172,7 @@ echo "Preparing another dump file for HasFound and update table - Incremental"
 ### Dump file ###
 printf "+++  Preparing dump file for HasFound - Incremental"
 echo "### Preparing dump file for HasFound - Incremental ###" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
-perl ${CARDIODBS_PATH}/bin/make_HasFound.pl --sql --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --new_entries > ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.colocated.txt 2>> log_cardiodbs_$DATE/HasFound.added.$DATE.log
+perl ${CARDIODBS_PATH}/bin/make_HasFound.pl --sql --new_entries --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --ens_api_conf $ENSEMBL_API > ${CARDIODBS_PATH}/Dump/HasFound/HasFound.added.colocated.txt 2>> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 echo "" >> log_cardiodbs_$DATE/HasFound.added.$DATE.log
 echo " =====> Done!"
 
