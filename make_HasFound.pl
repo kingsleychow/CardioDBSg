@@ -161,6 +161,7 @@ MAIN:{
 }#end of MAIN
 
 #copied from /data/Install/Perl/ensembl-variation/modules/Bio/EnsEMBL/Variation/Utils/VEP.pm
+#SELECT distinct source_id FROM variation_feature
 sub find_existing{
   my $new_vf=shift;
 
