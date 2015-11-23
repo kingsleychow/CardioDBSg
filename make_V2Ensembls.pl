@@ -4,6 +4,8 @@ use Getopt::Long;
 use DBI;
 use Bio::EnsEMBL::Registry;
 use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
+use Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor;
+
 
 #use lib '/data/Develop/Perl/lib';
 #use Sung::Manager::Config;
@@ -11,6 +13,7 @@ use Bio::EnsEMBL::Utils::Sequence qw(reverse_comp);
 my $ensembl_api_conf='';
 my $dbconfig='';
 my $CARDIODB_ROOT='';
+my $ensembl_vcf_conf='';
 my $DEBUG=0; #
 
 my ($is_sql,$which_db,$all,$region,$start,$end,$allele,$check_alleles,$not_in_v2ensembl,$new_entries,$canon_only,$v2ensx,$annotation,$help);
@@ -20,6 +23,7 @@ GetOptions
   'dbconfig=s'		=> \$dbconfig,
   'CARDIODB_ROOT=s'	=> \$CARDIODB_ROOT,
   'ens_api_conf=s'	=> \$ensembl_api_conf,
+  'ens_vcf_conf=s'      => \$ensembl_vcf_conf,
   'sql'			=> \$is_sql,
   'all:s'		=> \$all,  # a flag
   'chr:s'		=> \$region, #optional
@@ -46,6 +50,8 @@ if(defined $region){&help and exit(0) unless $region=~m/^(1|2|3|4|5|6|7|8|9|10|1
 my $reg = "Bio::EnsEMBL::Registry";
 $reg->load_all($ensembl_api_conf); # from ENSEMBL_RETISTRY (check $ENSEMBL_RERISTRY env)
 
+$Bio::EnsEMBL::Variation::DBSQL::VCFCollectionAdaptor::CONFIG_FILE=$ensembl_vcf_conf;
+
 my $slice_adaptor = $reg->get_adaptor('human','core','slice');
 #my $slice_adaptor=$reg->get_adaptor("Slice"); #my $slice_adaptor=$reg->get_adaptor("Human", "core", "slice");
 #my $slice_adaptor=$reg->get_SliceAdaptor();
@@ -62,6 +68,8 @@ my $va = $reg->get_adaptor('human','variation','variation');
 
 my $vfa = $reg->get_adaptor('human','variation','variationfeature');
 	die "cannot get VariationFeature adaptor\n" unless defined $vfa;
+
+$vfa->db->use_vcf(1);
 
 my $ga = $reg->get_adaptor('Human', 'core', 'gene');
 
@@ -435,10 +443,10 @@ sub v2dbsnp{
             my $al=$allele->allele? $allele->allele:'\\N';
             my $pop_id=$allele->population? $allele->population->dbID:'\\N';
             #my $pop_des=$allele->population? $allele->population->'\\N';
-            #my $population=$allele->population? $allele->population->name:'\\N';
+            my $population=$allele->population? $allele->population->name:'\\N';
             my $count=$allele->count? $allele->count:'\\N';
 
-            print FRE "0\t$uid\t$rs_id\t$al\t$freq\t$count\t$pop_id\n";
+            print FRE "0\t$uid\t$rs_id\t$al\t$freq\t$count\t$pop_id\t$population\n";
         } #end of foreach my $allele
   } #end of foreach my $rs_id
 } #end of sub v2dbsnp

@@ -237,7 +237,7 @@ echo "Updating V2Ensembls, V2dbSNPs, V2Freqs and V2Phens table"
 ### Dump File ###
 printf "+++  Preparing dump file for V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental"
 echo "### Preparing dump file for V2Ensembls, V2dbSNPs, V2Freqs and V2Phens - Incremental ###" >> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
-perl ${CARDIODBS_PATH}/bin/make_V2Ensembls.pl --sql --all --new_entries --v2ensx --annotation --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --ens_api_conf $ENSEMBL_API  2>> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
+perl ${CARDIODBS_PATH}/bin/make_V2Ensembls.pl --sql --all --new_entries --v2ensx --annotation --dbconfig $DB_CONFIG --CARDIODB_ROOT ${CARDIODBS_PATH} --ens_api_conf $ENSEMBL_API  --ens_vcf_conf $VCF_CONF 2>> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
 echo "" >> log_cardiodbs_$DATE/V2Ensembls.$DATE.log
 echo " =====> Done!"
 
