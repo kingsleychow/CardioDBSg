@@ -211,7 +211,7 @@ sub v2ensx{
 
   # new function
   my($rs_ids,$hgmds,$cosmics,$esps)=&find_existing($new_vf); 
-  
+ 
   # old function
   #&find_co_located_variants($new_vf,$g_start,$g_end);
 
@@ -341,7 +341,7 @@ sub v2ensx{
               }else{
                 ($pep_ref,$pep_mut)=('\N','\N');
               }
-	
+
               #($pep_ref,$pep_mut)=$tr_v->pep_allele_string ? split('/',$tr_v->pep_allele_string):('\N','\N');
 
               #Get a list of the all the alternate allele from this TranscriptVariation (no reference)
@@ -450,6 +450,7 @@ sub v2dbsnp{
         } #end of foreach my $allele
   } #end of foreach my $rs_id
 } #end of sub v2dbsnp
+
 
 #copied from /data/Install/Perl/ensembl-variation/modules/Bio/EnsEMBL/Variation/Utils/VEP.pm
 #SELECT distinct source_id FROM variation_feature
