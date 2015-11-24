@@ -211,6 +211,8 @@ sub v2ensx{
 
   # new function
   my($rs_ids,$hgmds,$cosmics,$esps)=&find_existing($new_vf); 
+
+  my($evidence)=&get_evidence($new_vf);
  
   # old function
   #&find_co_located_variants($new_vf,$g_start,$g_end);
@@ -251,12 +253,12 @@ sub v2ensx{
                   print ENS "0\t$uid\t",
                   "$strand\t$ensg\t$hgnc\t$gene_biotype\t",
                   "$enst\t$is_canonical\t$tr_biotype\t$cdna_start\t$cdna_end\t$cds_start\t$cds_end\t$codons\t$tr_allele\t$hgvs_transcript\t$ccds\t$so_terms\t$rs_ids\t$hgmds\t$cosmics\t",
-                  "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\n" unless $DEBUG;
+                  "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\t$evidence\n" unless $DEBUG;
               }else{
                   print "0\t$uid\t",
                   "$strand\t$ensg\t$hgnc\t$gene_biotype\t",
                   "$enst\t$is_canonical\t$tr_biotype\t$cdna_start\t$cdna_end\t$cds_start\t$cds_end\t$codons\t$tr_allele\t$hgvs_transcript\t$ccds\t$so_terms\t$rs_ids\t$hgmds\t$cosmics\t",
-                  "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\n" unless $DEBUG;
+                  "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\t$evidence\n" unless $DEBUG;
               } #end of if-else
           } #end of foreach
       } #end of unless-canon_only
@@ -290,12 +292,12 @@ sub v2ensx{
                           print ENS "0\t$uid\t",
                           "$strand\t$ensg\t$hgnc\t$gene_biotype\t",
                           "$enst\t$is_canonical\t$tr_biotype\t$cdna_start\t$cdna_end\t$cds_start\t$cds_end\t$codons\t$tr_allele\t$hgvs_transcript\t$ccds\t$so_terms\t$rs_ids\t$hgmds\t$cosmics\t",
-                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\n" unless $DEBUG;
+                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\t$evidence\n" unless $DEBUG;
                       }else{
                           print "0\t$uid\t",
                           "$strand\t$ensg\t$hgnc\t$gene_biotype\t",
                           "$enst\t$is_canonical\t$tr_biotype\t$cdna_start\t$cdna_end\t$cds_start\t$cds_end\t$codons\t$tr_allele\t$hgvs_transcript\t$ccds\t$so_terms\t$rs_ids\t$hgmds\t$cosmics\t",
-                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\n" unless $DEBUG;
+                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\t$evidence\n" unless $DEBUG;
                       } #if-else
                   } #end of foreach 
               } #end of unless-canon_only 
@@ -377,12 +379,12 @@ sub v2ensx{
                           print ENS "0\t$uid\t",
                           "$strand\t$ensg\t$hgnc\t$gene_biotype\t",
                           "$enst\t$is_canonical\t$tr_biotype\t$cdna_start\t$cdna_end\t$cds_start\t$cds_end\t$codons\t$tr_allele\t$hgvs_transcript\t$ccds\t$so_terms\t$rs_ids\t$hgmds\t$cosmics\t",
-                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\n" unless $DEBUG;
+                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\t$evidence\n" unless $DEBUG;
                       }else{
                           print "0\t$uid\t",
                           "$strand\t$ensg\t$hgnc\t$gene_biotype\t",
                           "$enst\t$is_canonical\t$tr_biotype\t$cdna_start\t$cdna_end\t$cds_start\t$cds_end\t$codons\t$tr_allele\t$hgvs_transcript\t$ccds\t$so_terms\t$rs_ids\t$hgmds\t$cosmics\t",
-                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\n" unless $DEBUG;
+                          "$ensp\t$tl_start\t$tl_end\t$pep_ref\t$pep_mut\t$hgvs_protein\t$sift\t$sift_score\t$pph_var\t$pph_var_score\t$pph_div\t$pph_div_score\t$evidence\n" unless $DEBUG;
                       }
                   } #end of foreach 
           } #end of unless-else-tr 
@@ -451,6 +453,19 @@ sub v2dbsnp{
   } #end of foreach my $rs_id
 } #end of sub v2dbsnp
 
+sub get_evidence{
+  my $new_vf = shift;
+  my($rs_ids,$hgmds,$cosmics,$esps)=&find_existing($new_vf);
+
+  foreach my $rs_id(split /\,/, $rs_ids){
+      my $v=$va->fetch_by_name($rs_id);
+      next unless $v;
+
+      my $evidence_value = (scalar @{$v->get_all_evidence_values()}? join (',', @{$v->get_all_evidence_values()}) : '\N');
+
+      return ($evidence_value);
+  }
+} #end of sub get_evidence
 
 #copied from /data/Install/Perl/ensembl-variation/modules/Bio/EnsEMBL/Variation/Utils/VEP.pm
 #SELECT distinct source_id FROM variation_feature
