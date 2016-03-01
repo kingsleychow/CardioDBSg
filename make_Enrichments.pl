@@ -35,7 +35,7 @@ MAIN: {
   my $dbh = DBI->connect("DBI:mysql:;mysql_read_default_file=$dbconfig",undef,undef)
     or die "Couldn't connect to database: " . DBI->errstr;
 
-  my $where=$run_name eq 'all'? '' : "where s.run_name='$run_name'";
+  my $where=$run_name eq 'all'? "" : "where s.run_name='$run_name'";
 
   $sql=$dbh->prepare("SELECT distinct r.machine, s.run_name,s.pool_name,s.target_id FROM Samples s JOIN Runs r ON s.run_id=r.id $where")
     or die "Couldn't prepare statement: " . $dbh->errstr;
@@ -58,9 +58,9 @@ MAIN: {
           warn "\e[031mOnly for Soid4, 454, 5500XL, HiSeq or MiSeq\e[0m\n" and next;
       }
 
-      $sample_cov_file="$result_root/$run_name/Coverage_Report/SummaryOutput_ProteinCodingTarget_$run_name.txt";
-      $cds_cov_file="$result_root/$run_name/Coverage_Report/PerOfCallableBy_ProteinCodingTarget_$run_name\_$pool_name.txt";
-      $cds_cov_file="$result_root/$run_name/Coverage_Report/PerOfCallableBy_ProteinCodingTarget_$run_name\_$pool_name\_$target_id.txt" unless -s $cds_cov_file;
+      $sample_cov_file="$result_root/$run_name/Coverage_Report_v2/ProteinCodingTarget169gene/SummaryOutput_ProteinCodingTarget169gene_$run_name.txt";
+      $cds_cov_file="$result_root/$run_name/Coverage_Report_v2/ProteinCodingTarget169gene/CallableByExon_ProteinCodingTarget169gene_$run_name\_$pool_name.txt";
+      $cds_cov_file="$result_root/$run_name/Coverage_Report_v2/ProteinCodingTarget169gene/CallableByExon_ProteinCodingTarget169gene_$run_name\_$pool_name\_$target_id.txt" unless -s $cds_cov_file;
 
       warn "\e[31mcannot find $sample_cov_file \e[0m\n" and next unless -s $sample_cov_file;
       warn "\e[31mcannot find $cds_cov_file \e[0m\n" and next unless -s $cds_cov_file;
@@ -69,20 +69,6 @@ MAIN: {
       &make_SampleEnrichments($sample_cov_file,$dbh);
       #CodingEnrichments
       &make_CodingEnrichments($cds_cov_file,$dbh);
-
-=per gene
-      #CallableByRun_ProteinCodingTarget
-      SELECT run_name, pool_name, hgnc, MAX(t.callable) FROM (
-          #CallableBySample_ProteinCodingTarget
-          SELECT run_name, pool_name, sample_id, c.sample_name, hgnc, SUM(callable_pct*(cds_end-cds_start+1))/SUM(cds_end-cds_start+1) callable 
-          FROM CodingEnrichments c JOIN Samples s ON c.sample_id=s.id GROUP BY run_name, pool_name, sample_id, hgnc
-      ) t
-      GROUP BY run_name, pool_name, hgnc
-
-      #SummaryCollable
-      SELECT run_name, pool_name, sample_id, c.sample_name, SUM(callable_pct*(cds_end-cds_start+1))/SUM(cds_end-cds_start+1) callable 
-      FROM CodingEnrichments c JOIN Samples s ON c.sample_id=s.id GROUP BY run_name, pool_name, sample_id ORDER BY c.id
-=cut
 
   } #end of while loop
 
@@ -93,7 +79,7 @@ MAIN: {
 
 sub make_SampleEnrichments{
   my ($infile, $dbh) = @_;
-    warn "\e[032m$infile\e[0m\n";
+      warn "\e[032m$infile\e[0m\n";
 
   my $cnt=0;
 
@@ -116,23 +102,14 @@ sub make_SampleEnrichments{
           or die "Couldn't prepare statement: " . $dbh->errstr;
       $sth->execute($run_name,$sample_name)
           or die "Couldn't execute statement: " . $sth->errstr;
-      $sample_id = $sth->fetchrow_array();
-      
-      chomp($sample_id);
 
-      warn "no sample_id for $sample_name\n" and next unless $sample_id;
-      
-      print OUT $sample_id,"\t"; 
+      $sample_id = $sth->fetchrow_array();
+      chomp($sample_id);
+          warn "no sample_id for $sample_name\n" and next unless $sample_id;
+
+      print OUT $sample_id,"\t";
 
       for(my $i=0;$i<scalar@dummy_array;$i++){
-          next if $i==32; #Diff(mean-med)
-          if ($i == 35){
-              $dummy_array[$i] = '\\N';	#remove after jaydutt fix his script
-          }
-          if ($i == 36){
-              $dummy_array[$i] = '\\N';	#remove after jaydutt fix his script
-          }
-
           print OUT $dummy_array[$i],"\t";
       }
 
@@ -148,7 +125,7 @@ sub make_SampleEnrichments{
 
 sub make_CodingEnrichments{
   my ($infile, $dbh)=@_;
-    warn "\e[032m$infile\e[0m\n";
+      warn "\e[032m$infile\e[0m\n";
 
   my $cnt=0;
 
@@ -176,11 +153,9 @@ sub make_CodingEnrichments{
               
               $sample_id = $sth->fetchrow_array();
               chomp($sample_id);
-
-              warn "no sample_id for $sample_name\n" unless $sample_id;
+                  warn "no sample_id for $sample_name\n" and next unless $sample_id;
 
               $sample_ids[$i]{$sample_name}=$sample_id;
-
               $sth->finish();
          } #end of for
       } #end of if

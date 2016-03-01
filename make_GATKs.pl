@@ -37,7 +37,7 @@ MAIN: {
     or die "Couldn't connect to database: " . DBI->errstr;
 
   if($run_name eq 'all'){
-      $sql=$dbh->prepare("SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,r.machine FROM Samples s JOIN Runs r ON s.run_id=r.id")
+      $sql=$dbh->prepare("SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,r.machine FROM Samples s JOIN Runs r ON s.run_id=r.id WHERE s.Category != 'Excluded'")
         or die "Couldn't prepare statement: " . $dbh->errstr;
       $sql->execute()
         or die "Couldn't execute statement: " . $sql->errstr;
@@ -45,7 +45,7 @@ MAIN: {
       my $aux=$pool_name? "and pool_name='$pool_name' ":''; 
       $aux=$sample_name? $aux."and sample_name='$sample_name'":$aux;
 
-      $sql=$dbh->prepare("SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,r.machine FROM Samples s JOIN Runs r ON s.run_id=r.id where s.run_name= ? $aux order by s.id")
+      $sql=$dbh->prepare("SELECT s.id,s.run_name,s.pool_name,s.sample_name,s.target_id,r.machine FROM Samples s JOIN Runs r ON s.run_id=r.id where s.Category != 'Excluded' and s.run_name= ? $aux order by s.id")
         or die "Couldn't prepare statement: " . $dbh->errstr;
       $sql->execute($run_name)
         or die "Couldn't execute statement: " . $sql->errstr;
