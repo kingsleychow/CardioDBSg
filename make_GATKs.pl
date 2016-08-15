@@ -165,7 +165,7 @@ sub parse_vcf{
           foreach my $geno(split(/,/,$genotype)){
               #[QC] is the length same?
               if(length($reference)==length($geno)){
-                  print "0\t$sample_id\t$snp_type\t$chr\t$g_start\t$g_start\t$reference\t$geno\t$qual\t$filter\t$known\t$ab\t$ac\t$af\t$an\t$t_dp\t$hrun\t$mq\t$qd\t$sb\t$info\t$gt\t$ad\t$f_dp\t$gq\t$pl\n" unless $DEBUG;
+                  print "0\t$sample_id\t$snp_type\t$chr\t$g_start\t$reference\t$g_start\t$g_start\t$reference\t$geno\t$qual\t$filter\t$known\t$ab\t$ac\t$af\t$an\t$t_dp\t$hrun\t$mq\t$qd\t$sb\t$info\t$gt\t$ad\t$f_dp\t$gq\t$pl\n" unless $DEBUG;
               }else{
                   die "\e[31mlength of $reference NOT same with $geno for SNP?\n$_\e[0m\n";
               }
@@ -215,7 +215,7 @@ sub parse_vcf{
                   die "\e[31mlength of $reference same with $geno for Indel?\n$_\e[0m\n";
               }
 	
-              print "0\t$sample_id\t$snp_type\t$chr\t$start\t$end\t$ref\t$mut\t$qual\t$filter\t$known\t$ab\t$ac\t$af\t$an\t$t_dp\t$hrun\t$mq\t$qd\t$sb\t$info\t$gt\t$ad\t$f_dp\t$gq\t$pl\n" unless $DEBUG;
+              print "0\t$sample_id\t$snp_type\t$chr\t$g_start\t$reference\t$start\t$end\t$ref\t$mut\t$qual\t$filter\t$known\t$ab\t$ac\t$af\t$an\t$t_dp\t$hrun\t$mq\t$qd\t$sb\t$info\t$gt\t$ad\t$f_dp\t$gq\t$pl\n" unless $DEBUG;
           } #enf of foreach
       } #end of if-else $is_snp
   }#end of while
