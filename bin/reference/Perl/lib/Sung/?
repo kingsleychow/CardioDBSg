@@ -1,0 +1,54 @@
+#
+#===============================================================================
+#
+#         FILE:  UniRef.pm
+#
+#  DESCRIPTION:  
+#
+#        FILES:  ---
+#         BUGS:  ---
+#        NOTES:  ---
+#       AUTHOR:  Dr. Sungsam Gong (sung), sung@bio.cc
+#      COMPANY:  Royal Brompton and Harefield NHS Trust
+#      VERSION:  1.0
+#      CREATED:  27/10/11 14:18:48
+#     REVISION:  ---
+#===============================================================================
+package Sung::Parser::UniProt::XML::UniRef;
+use Moose;
+use namespace::autoclean;
+use MooseX::Types::Path::Class qw/File/;
+use MooseX::StrictConstructor;
+
+# extends, roles, attributes, etc.
+# extends qw/Sung::Parser/; # chop house-keeping snippets into parents
+
+has 'input'=>(
+	is =>'ro',
+	isa =>File,
+	required=>1,
+	coerce =>1,
+);
+
+has 'twig'=>(
+	is =>'ro',
+	isa =>'XML::Twig',
+	lazy_build =>1,
+);
+
+has '_parse_entry'=>(
+	is=> 'rw',
+	isa => ''
+);
+
+# methods
+sub _build_twig {
+	#XML::Twig->new(twig_handler=>{'entry'=>\&_parse_entry});
+	#XML::Twig->new(twig_handler=>{'entry'=>\&_parse_entry});
+}
+
+
+__PACKAGE__->meta->make_immutable;
+1;
+
+

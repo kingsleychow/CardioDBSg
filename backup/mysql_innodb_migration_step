@@ -1,0 +1,31 @@
+#On the destination server, discard the existing tablespace
+USE CardioDBSg;
+SET FOREIGN_KEY_CHECKS = 0;
+ALTER TABLE _UnifiedCalls DISCARD TABLESPACE;
+SET FOREIGN_KEY_CHECKS = 1;
+
+#On the source server, run FLUSH TABLES ... FOR EXPORT to quiesce the table and create the .cfg metadata file
+USE cardiodbs_devel;
+FLUSH TABLES _UnifiedCalls,_MetaCalls,Callers FOR EXPORT;
+
+#Copy the .ibd file and .cfg metadata file from the source server to the destination server. The .ibd file and .cfg file must be copied before releasing the shared locks.
+cp /other/mysql-devel/data/cardiodbs_devel/*.{ibd,cfg} /other/mysql/data/CardioDBSg/.
+
+#cp /other/mysql-devel/data/cardiodbs_devel/_UnifiedCalls.{ibd,cfg} /other/mysql/data/CardioDBSg/.
+#cp /other/mysql-devel/data/cardiodbs_devel/_MetaCalls.{ibd,cfg} /other/mysql/data/CardioDBSg/.
+#cp /other/mysql-devel/data/cardiodbs_devel/_Callers.{ibd,cfg} /other/mysql/data/CardioDBSg/.
+
+
+#change file ownership
+chown mysql:mysql /other/mysql/data/CardioDBSg/*.{ibd,cfg}
+
+#On the source server, USE UNLOCK TABLES to release locks acquired by FLUSH TABLES ... FOR EXPORT
+USE cardiodbs_devel;
+UNLOCK TABLES;
+
+#On the destination server, import the tablespace
+USE CardioDBSg;
+ALTER TABLE _UnifiedCalls IMPORT TABLESPACE;
+ALTER TABLE _MetaCalls IMPORT TABLESPACE;
+ALTER TABLE Callers IMPORT TABLESPACE;
+

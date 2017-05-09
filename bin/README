@@ -1,0 +1,16 @@
+20160108
+1) make_Enrichments.pl - not yet tested - done
+	- modify coverage report path: coverege_report_v2
+	- modify file name and file path for exon coverage report
+	- modify column for sampleEnrichment section
+	- added 5 columns into DB tables: cov_50x_pct, diff_mean-med, Total_HC_HetSNPs, HetSNPs_AB_0.4_0.6, HetSNPs_AB_0.4_0.6_pct
+
+20160224 - done
+1) make_GATKs.pl, make_GATKsHC.pl, make_Enrichments.pl
+	- added "AND Category != 'Excluded'" into SQL statement. 
+
+TODO
+1) scripting to mirror DB from devel to production
+2) schedule DB backup
+3) record family info into DB
+4) calculate VCON samples allele frequency
